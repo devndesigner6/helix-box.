@@ -1,7 +1,7 @@
 FROM oven/bun:latest
 WORKDIR /app
-COPY package.json bun.lockb ./
+COPY manager/package.json ./
 RUN bun install
-COPY . .
+COPY manager/ .
 EXPOSE 8080
 CMD ["bun", "run", "src/index.ts"]

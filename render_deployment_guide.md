@@ -21,9 +21,9 @@ You will deploy both components as **Web Services** on Render.
 3. Connect your GitHub repository `devndesigner6/helix-box.`.
 4. Configure the Web Service:
    * **Name**: `helixbox-manager`
-   * **Language**: `Docker` (Render will automatically detect the Dockerfile)
-   * **Docker Build Context**: `./manager` *(Crucial: tells Render to build inside the manager folder)*
-   * **Docker File Path**: `./manager/Dockerfile`
+   * **Language**: `Docker`
+   * **Docker Build Context**: `.` *(Leave as default repository root)*
+   * **Docker File Path**: `manager/Dockerfile`
    * **Branch**: `main`
 5. Under **Advanced Options**, add the following environment variable:
    * `PORT`: `8080`
@@ -35,8 +35,8 @@ You will deploy both components as **Web Services** on Render.
 3. Configure the Web Service:
    * **Name**: `helixbox-proxy`
    * **Language**: `Docker`
-   * **Docker Build Context**: `./proxy`
-   * **Docker File Path**: `./proxy/Dockerfile`
+   * **Docker Build Context**: `.` *(Leave as default repository root)*
+   * **Docker File Path**: `proxy/Dockerfile`
    * **Branch**: `main`
 4. Under **Advanced Options**, add the following environment variable:
    * `PORT`: `3000`
