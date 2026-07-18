@@ -1,5 +1,5 @@
 {
-  "name": "lunel",
+  "name": "helixbox",
   "main": "expo-router/entry",
   "version": "1.0.7",
   "scripts": {
@@ -8,6 +8,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
+    "build": "npx expo export",
     "build:editor-webview": "node scripts/build-editor-webview.mjs",
     "hotupdater:deploy": "hot-updater deploy -i"
   },
