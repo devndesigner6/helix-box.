@@ -2105,6 +2105,9 @@ function startManager(): void {
 </body>
 </html>`;
   };
+
+  const renderManagerPage = (): string => {
+    return `<!doctype html>
 <html>
 <head>
   <meta charset="utf-8" />
