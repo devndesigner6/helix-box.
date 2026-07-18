@@ -35,7 +35,7 @@ import { createRequire } from "module";
 const __require = createRequire(import.meta.url);
 const VERSION = (__require("../package.json") as { version: string }).version;
 const VERBOSE_AI_LOGS = process.env.HELIXBOX_DEBUG_AI === "1";
-const PTY_RELEASE_BASE_URL = "https://github.com/helixbox-dev/helixbox/releases/download/v0";
+const PTY_RELEASE_BASE_URL = "https://github.com/lunel-dev/lunel/releases/download/v0";
 const AI_RUNTIME_INSTALL_CANDIDATES: Record<AiBackend, string[]> = {
   opencode: ["opencode-ai", "@opencode-ai/cli", "opencode"],
   codex: ["@openai/codex", "codex"],
@@ -43,15 +43,15 @@ const AI_RUNTIME_INSTALL_CANDIDATES: Record<AiBackend, string[]> = {
 const PTY_RELEASES: Record<string, { fileName: string; url: string }> = {
   "linux:x64": {
     fileName: "helixbox-pty-linux-x8664-0",
-    url: `${PTY_RELEASE_BASE_URL}/helixbox-pty-linux-x8664-0`,
+    url: `${PTY_RELEASE_BASE_URL}/lunel-pty-linux-x8664-0`,
   },
   "darwin:arm64": {
     fileName: "helixbox-pty-macos-arm64-0",
-    url: `${PTY_RELEASE_BASE_URL}/helixbox-pty-macos-arm64-0`,
+    url: `${PTY_RELEASE_BASE_URL}/lunel-pty-macos-arm64-0`,
   },
   "win32:x64": {
     fileName: "helixbox-pty-windows-x8664-1.exe",
-    url: `${PTY_RELEASE_BASE_URL}/helixbox-pty-windows-x8664-1.exe`,
+    url: `${PTY_RELEASE_BASE_URL}/lunel-pty-windows-x8664-1.exe`,
   },
 };
 
