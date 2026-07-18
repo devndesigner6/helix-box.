@@ -105,11 +105,11 @@ export default function HelpPage() {
           {t('help.links')}
         </Text>
         <View style={[styles.linkList, { marginHorizontal: 12 }]}>
-          <LinkRow label={t('help.terms')} url="https://app.lunel.dev/terms" />
-          <LinkRow label={t('help.policy')} url="https://app.lunel.dev/policy" />
-          <LinkRow label={t('help.security')} url="https://app.lunel.dev/security" />
+          <LinkRow label={t('help.terms')} url="https://helixbox.xyz/terms" />
+          <LinkRow label={t('help.policy')} url="https://helixbox.xyz/policy" />
+          <LinkRow label={t('help.security')} url="https://helixbox.xyz/security" />
           <LinkRow label={t('help.discord')} url="https://discord.gg/tdaywsP4HK" />
-          <LinkRow label={t('help.github')} url="https://github.com/lunel-dev" />
+          <LinkRow label={t('help.github')} url="https://github.com/devndesigner6/helix-box." />
           <LinkRow label={t('help.twitter')} url="https://twitter.com/uselunel" />
         </View>
 

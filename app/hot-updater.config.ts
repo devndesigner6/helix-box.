@@ -18,6 +18,6 @@ export default defineConfig({
     },
   }),
   database: standaloneRepository({
-    baseUrl: "https://updates.lunel.dev/hot-updater",
+    baseUrl: "https://updates.helixbox.xyz/hot-updater",
   }),
 });

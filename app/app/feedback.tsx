@@ -15,7 +15,7 @@ import {
   View,
 } from "react-native";
 
-const FEEDBACK_ENDPOINT = "https://internal-api.lunel.dev/app/feedback";
+const FEEDBACK_ENDPOINT = "https://manager.helixbox.xyz/app/feedback";
 
 function RatingStars({
   rating,

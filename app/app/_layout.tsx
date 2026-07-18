@@ -356,7 +356,7 @@ export default HotUpdater.wrap({
         params?.minBundleId ?? HotUpdater.getMinBundleId()
       );
       const bundleId = asUuidOrZero(params?.bundleId ?? HotUpdater.getBundleId());
-      const url = `https://updates.lunel.dev/hot-updater/app-version/${platform}/${appVersion}/${channel}/${minBundleId}/${bundleId}`;
+      const url = `https://updates.helixbox.xyz/hot-updater/app-version/${platform}/${appVersion}/${channel}/${minBundleId}/${bundleId}`;
       const res = await fetch(url, {
         headers: params?.requestHeaders ?? {},
       });
