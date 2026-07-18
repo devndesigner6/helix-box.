@@ -18,7 +18,7 @@ You will deploy both components as **Web Services** on Render.
 ### Service A: Deploy the Manager (`manager.helixbox.xyz`)
 1. Log in to [Render Dashboard](https://dashboard.render.com).
 2. Click **New +** and select **Web Service**.
-3. Connect your GitHub repository `devndesigner6/helix-box`.
+3. Connect your GitHub repository `devndesigner6/helix-box.`.
 4. Configure the Web Service:
    * **Name**: `helixbox-manager`
    * **Language**: `Docker` (Render will automatically detect the Dockerfile)
@@ -31,7 +31,7 @@ You will deploy both components as **Web Services** on Render.
 
 ### Service B: Deploy the Proxy (`gateway.helixbox.xyz`)
 1. In Render, click **New +** -> **Web Service**.
-2. Connect your GitHub repository `devndesigner6/helix-box`.
+2. Connect your GitHub repository `devndesigner6/helix-box.`.
 3. Configure the Web Service:
    * **Name**: `helixbox-proxy`
    * **Language**: `Docker`
