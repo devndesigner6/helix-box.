@@ -25,8 +25,10 @@ You will deploy both components as **Web Services** on Render.
    * **Docker Build Context**: `.` *(Leave as default repository root)*
    * **Docker File Path**: `manager/Dockerfile`
    * **Branch**: `main`
-5. Under **Advanced Options**, add the following environment variable:
+5. Under **Advanced Options** -> **Environment Variables**, add:
    * `PORT`: `8080`
+   * `MANAGER_ADMIN_PASSWORD`: `your_secure_admin_password` *(Required: Password to access the manager dashboard)*
+   * `PROXIES`: `https://gateway.helixbox.xyz` *(Optional: whitelist of authorized proxies)*
 6. Click **Deploy Web Service**. Render will build and spin up the container at `https://helixbox-manager.onrender.com`.
 
 ### Service B: Deploy the Proxy (`gateway.helixbox.xyz`)
@@ -38,8 +40,11 @@ You will deploy both components as **Web Services** on Render.
    * **Docker Build Context**: `.` *(Leave as default repository root)*
    * **Docker File Path**: `proxy/Dockerfile`
    * **Branch**: `main`
-4. Under **Advanced Options**, add the following environment variable:
+4. Under **Advanced Options** -> **Environment Variables**, add:
    * `PORT`: `3000`
+   * `MANAGER_URL`: `https://helixbox-manager.onrender.com` *(Required: URL of the manager service you just created)*
+   * `PROXY_PASSWORD`: `your_secure_proxy_password` *(Required: Password for communicating with the manager)*
+   * `PUBLIC_URL`: `https://gateway.helixbox.xyz` *(Required: The public URL of the proxy)*
 5. Click **Deploy Web Service**. Render will build and spin up the container at `https://helixbox-proxy.onrender.com`.
 
 ---
