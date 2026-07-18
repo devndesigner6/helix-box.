@@ -102,7 +102,14 @@ import {
 } from "@expo-google-fonts/public-sans";
 import { Orbitron_700Bold } from "@expo-google-fonts/orbitron";
 import { SpaceGrotesk_700Bold } from "@expo-google-fonts/space-grotesk";
-import { HotUpdater } from "@hot-updater/react-native";
+let HotUpdater: any = null;
+if (Platform.OS !== "web") {
+  try {
+    HotUpdater = require("@hot-updater/react-native").HotUpdater;
+  } catch (e) {
+    console.warn("Failed to load HotUpdater native module", e);
+  }
+}
 import { Stack, usePathname } from "expo-router";
 import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake";
 import * as NavigationBar from "expo-navigation-bar";
@@ -346,9 +353,9 @@ function RootLayout() {
   );
 }
 
-export default HotUpdater.wrap({
+const App = (Platform.OS !== "web" && HotUpdater) ? HotUpdater.wrap({
   resolver: {
-    checkUpdate: async (params) => {
+    checkUpdate: async (params: any) => {
       const platform = params?.platform ?? "android";
       const appVersion = params?.appVersion ?? HotUpdater.getAppVersion();
       const channel = params?.channel ?? HotUpdater.getChannel();
@@ -368,4 +375,6 @@ export default HotUpdater.wrap({
   },
   updateStrategy: "appVersion",
   updateMode: "auto",
-})(RootLayout);
+})(RootLayout) : RootLayout;
+
+export default App;
