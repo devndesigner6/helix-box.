@@ -19,8 +19,8 @@ import { spawn, spawnSync, ChildProcess, execSync } from "child_process";
 import { createServer, createConnection, Socket } from "net";
 import { createInterface } from "readline";
 
-const DEFAULT_PROXY_URL = normalizeGatewayUrl(process.env.HELIXBOX_PROXY_URL || "https://gateway.helixbox.xyz");
-const MANAGER_URL = normalizeGatewayUrl(process.env.HELIXBOX_MANAGER_URL || "https://manager.helixbox.xyz");
+const DEFAULT_PROXY_URL = normalizeGatewayUrl(process.env.HELIXBOX_PROXY_URL || "https://helixbox-proxy.onrender.com");
+const MANAGER_URL = normalizeGatewayUrl(process.env.HELIXBOX_MANAGER_URL || "https://helixbox-manager.onrender.com");
 const CLI_ARGS = process.argv.slice(2);
 function hasAnyFlag(args: string[], ...flags: string[]): boolean {
   return flags.some((flag) => args.includes(flag));
