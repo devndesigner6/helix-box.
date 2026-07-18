@@ -1838,374 +1838,254 @@ function startManager(): void {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Helixbox — Remote Coding Workspace</title>
-  <meta name="description" content="Helixbox connects your mobile device directly to your desktop terminal. Code on the go, compile and run locally with end-to-end security." />
+  <title>Helixbox — Build, run, and ship directly from your phone</title>
+  <meta name="description" content="Helixbox lets you use your full development environment from your phone so you can build, run, and manage your projects from anywhere." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --bg: #09090b;
-      --surface: #18181b;
-      --surface-hover: #27272a;
-      --border: rgba(255, 255, 255, 0.08);
-      --border-hover: rgba(255, 255, 255, 0.15);
-      --text: #fafafa;
-      --text-muted: #a1a1aa;
-      --accent: #6366f1;
-      --accent-glow: rgba(99, 102, 241, 0.15);
-      --font: "Outfit", sans-serif;
-      --mono: "Fira Code", monospace;
+      --font: "Inter", sans-serif;
+      --purple: #6366f1;
+      --pink: #d946ef;
+      --blue: #3b82f6;
     }
     body {
-      background-color: var(--bg);
-      color: var(--text);
+      background-color: #ffffff;
+      color: #1e293b;
       font-family: var(--font);
       line-height: 1.5;
       overflow-x: hidden;
     }
-    .grid-bg {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100vh;
-      background-image: 
-        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-      background-size: 40px 40px;
-      mask-image: radial-gradient(circle at 50% 30%, black, transparent 80%);
-      pointer-events: none;
-      z-index: 0;
-    }
-    .glowing-orb {
-      position: absolute;
-      top: 20%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 500px;
-      height: 500px;
-      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
-      pointer-events: none;
-      z-index: 0;
+    .hero-container {
+      background: linear-gradient(135deg, #4f46e5 0%, #8b5cf6 40%, #ec4899 100%);
+      color: #ffffff;
+      padding-bottom: 6rem;
+      position: relative;
     }
     header {
       max-width: 1200px;
       margin: 0 auto;
-      padding: 2rem 1.5rem;
+      padding: 1.75rem 1.5rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      position: relative;
-      z-index: 10;
     }
     .logo {
       font-size: 1.5rem;
       font-weight: 800;
-      letter-spacing: -0.05em;
-      color: var(--text);
+      color: #ffffff;
       text-decoration: none;
+      letter-spacing: -0.03em;
+    }
+    nav {
       display: flex;
+      gap: 2rem;
       align-items: center;
-      gap: 0.5rem;
     }
-    .logo span {
-      background: linear-gradient(135deg, #a5b4fc, var(--accent));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    .github-link {
-      color: var(--text-muted);
+    nav a {
+      color: rgba(255, 255, 255, 0.8);
       text-decoration: none;
+      font-size: 0.95rem;
       font-weight: 500;
       transition: color 0.2s;
+    }
+    nav a:hover {
+      color: #ffffff;
+    }
+    .header-buttons {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+    .btn-github {
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+      padding: 0.5rem 1.25rem;
+      border-radius: 9999px;
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 600;
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      border: 1px solid var(--border);
-      padding: 0.5rem 1rem;
+      transition: background 0.2s;
+    }
+    .btn-github:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+    .btn-get-started {
+      background: #000000;
+      color: #ffffff;
+      padding: 0.55rem 1.35rem;
       border-radius: 9999px;
-      background: rgba(255,255,255,0.02);
-      backdrop-filter: blur(8px);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: opacity 0.2s;
     }
-    .github-link:hover {
-      color: var(--text);
-      border-color: var(--border-hover);
-    }
-    main {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 4rem 1.5rem;
-      position: relative;
-      z-index: 10;
+    .btn-get-started:hover {
+      opacity: 0.9;
     }
     .hero {
-      text-align: center;
-      max-width: 800px;
-      margin: 0 auto 5rem auto;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 5rem 1.5rem 2rem 1.5rem;
+      text-align: left;
+    }
+    .hero-content {
+      max-width: 650px;
     }
     .hero h1 {
-      font-size: 4rem;
+      font-size: 3.5rem;
       font-weight: 800;
       letter-spacing: -0.04em;
-      line-height: 1.1;
+      line-height: 1.15;
       margin-bottom: 1.5rem;
     }
-    .hero h1 span {
-      background: linear-gradient(135deg, #c7d2fe, #818cf8, #4f46e5);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
     .hero p {
-      font-size: 1.25rem;
-      color: var(--text-muted);
+      font-size: 1.15rem;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.85);
       margin-bottom: 2.5rem;
-      font-weight: 300;
+      font-weight: 400;
     }
-    .cta-group {
+    .hero-buttons {
       display: flex;
       gap: 1rem;
-      justify-content: center;
-      align-items: center;
-      margin-bottom: 4rem;
       flex-wrap: wrap;
     }
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0.85rem 2rem;
+    .btn-hero {
+      padding: 0.8rem 1.75rem;
       border-radius: 12px;
       font-size: 1rem;
       font-weight: 600;
       text-decoration: none;
-      transition: all 0.25s ease;
-      cursor: pointer;
-    }
-    .btn-primary {
-      background-color: var(--accent);
-      color: #fff;
-      box-shadow: 0 0 30px rgba(99, 102, 241, 0.4);
-    }
-    .btn-primary:hover {
-      background-color: #4f46e5;
-      transform: translateY(-2px);
-      box-shadow: 0 0 40px rgba(99, 102, 241, 0.6);
-    }
-    .btn-secondary {
-      background-color: rgba(255, 255, 255, 0.03);
-      color: var(--text);
-      border: 1px solid var(--border);
-      backdrop-filter: blur(8px);
-    }
-    .btn-secondary:hover {
-      background-color: rgba(255, 255, 255, 0.08);
-      border-color: var(--border-hover);
-      transform: translateY(-2px);
-    }
-    .terminal-window {
-      max-width: 650px;
-      margin: 0 auto;
-      background: #0c0c0e;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 30px 100px rgba(0, 0, 0, 0.8);
-      text-align: left;
-      font-family: var(--mono);
-      font-size: 0.9rem;
-    }
-    .terminal-header {
-      background: rgba(255, 255, 255, 0.02);
-      padding: 0.75rem 1rem;
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      border-bottom: 1px solid var(--border);
+      gap: 0.5rem;
+      transition: transform 0.2s, box-shadow 0.2s;
     }
-    .terminal-dots {
-      display: flex;
-      gap: 6px;
+    .btn-hero:hover {
+      transform: translateY(-2px);
     }
-    .terminal-dot {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
+    .btn-black {
+      background-color: #000000;
+      color: #ffffff;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     }
-    .dot-red { background: #ef4444; }
-    .dot-yellow { background: #f59e0b; }
-    .dot-green { background: #10b981; }
-    .terminal-title {
-      margin-left: 1.5rem;
-      color: var(--text-muted);
-      font-size: 0.8rem;
+    .btn-white {
+      background-color: #ffffff;
+      color: #000000;
+      box-shadow: 0 4px 20px rgba(255, 255, 255, 0.1);
     }
-    .terminal-body {
-      padding: 1.5rem;
-      color: #38bdf8;
-      min-height: 160px;
-    }
-    .terminal-line {
-      margin-bottom: 0.5rem;
-    }
-    .terminal-input {
-      color: var(--text);
-    }
-    .terminal-output {
-      color: #a1a1aa;
-    }
-    .terminal-success {
-      color: #34d399;
-    }
-    .features {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 2rem;
-      margin-top: 6rem;
-    }
-    .feature-card {
-      background: rgba(255, 255, 255, 0.01);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 2rem;
-      transition: all 0.3s;
-      backdrop-filter: blur(8px);
-    }
-    .feature-card:hover {
-      background: rgba(255, 255, 255, 0.03);
-      border-color: var(--border-hover);
-      transform: translateY(-4px);
-    }
-    .feature-icon {
-      font-size: 1.5rem;
-      color: var(--accent);
-      margin-bottom: 1.25rem;
-    }
-    .feature-card h3 {
-      font-size: 1.25rem;
-      margin-bottom: 0.75rem;
-      font-weight: 600;
-    }
-    .feature-card p {
-      color: var(--text-muted);
-      font-size: 0.95rem;
-      font-weight: 300;
-    }
-    .setup-guide {
-      margin-top: 8rem;
+    .section-features {
+      padding: 6rem 1.5rem;
+      max-width: 1200px;
+      margin: 0 auto;
       text-align: center;
     }
-    .setup-guide h2 {
+    .section-features h2 {
       font-size: 2.25rem;
       font-weight: 800;
-      margin-bottom: 3rem;
+      letter-spacing: -0.03em;
+      margin-bottom: 4rem;
     }
-    .steps {
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
-      max-width: 600px;
-      margin: 0 auto;
+    .grid-features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 2.5rem;
+    }
+    .feature-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+      padding: 2.5rem;
       text-align: left;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
-    .step {
-      display: flex;
-      gap: 1.5rem;
-      background: rgba(255,255,255,0.01);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 1.5rem;
+    .feature-card:hover {
+      border-color: #cbd5e1;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.03);
     }
-    .step-num {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: var(--accent);
-      color: #fff;
+    .feature-icon {
+      font-size: 1.75rem;
+      margin-bottom: 1.5rem;
+      width: 48px;
+      height: 48px;
+      background: #f1f5f9;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: bold;
-      flex-shrink: 0;
+      border-radius: 12px;
     }
-    .step-content h4 {
-      font-size: 1.1rem;
-      margin-bottom: 0.25rem;
+    .feature-card h3 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
     }
-    .step-content p {
-      color: var(--text-muted);
+    .feature-card p {
+      color: #64748b;
       font-size: 0.95rem;
-      font-weight: 300;
-    }
-    .code-block {
-      background: #000;
-      border: 1px solid var(--border);
-      padding: 0.5rem 1rem;
-      border-radius: 8px;
-      font-family: var(--mono);
-      font-size: 0.85rem;
-      margin-top: 0.5rem;
-      display: inline-block;
-      color: #f472b6;
+      line-height: 1.6;
     }
     footer {
-      max-width: 1200px;
-      margin: 8rem auto 0 auto;
+      border-top: 1px solid #e2e8f0;
       padding: 3rem 1.5rem;
-      border-top: 1px solid var(--border);
       text-align: center;
-      color: var(--text-muted);
+      color: #64748b;
       font-size: 0.9rem;
+      margin-top: 4rem;
     }
     @media (max-width: 768px) {
-      .hero h1 { font-size: 2.75rem; }
-      .hero p { font-size: 1.1rem; }
+      header { flex-direction: column; gap: 1.5rem; }
+      nav { display: none; }
+      .hero { text-align: center; padding-top: 3rem; }
+      .hero-content { margin: 0 auto; }
+      .hero h1 { font-size: 2.5rem; }
+      .hero-buttons { justify-content: center; }
     }
   </style>
 </head>
 <body>
-  <div class="grid-bg"></div>
-  <div class="glowing-orb"></div>
-  <header>
-    <a href="#" class="logo">Helix<span>box</span></a>
-    <a href="https://github.com/devndesigner6/helix-box." target="_blank" class="github-link">
-      <svg height="20" width="20" viewBox="0 0 16 16" fill="currentColor">
-        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
-      </svg>
-      GitHub
-    </a>
-  </header>
-  <main>
-    <section class="hero">
-      <h1>Code on your Phone.<br><span>Run on your Terminal.</span></h1>
-      <p>Helixbox connects your mobile device directly to your desktop workspace. Run shell commands, explore files, forward ports, and edit code natively from anywhere.</p>
-      <div class="cta-group">
-        <a href="https://github.com/devndesigner6/helix-box./releases" target="_blank" class="btn btn-primary">Download Android App</a>
-        <a href="#install" class="btn btn-secondary">Get Started</a>
+  <div class="hero-container">
+    <header>
+      <a href="#" class="logo">Helixbox</a>
+      <nav>
+        <a href="#features">Features</a>
+        <a href="#connect">Connect</a>
+        <a href="#cloud">Cloud</a>
+        <a href="#enterprise">Enterprise</a>
+      </nav>
+      <div class="header-buttons">
+        <a href="https://github.com/devndesigner6/helix-box." target="_blank" class="btn-github">
+          <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor" style="vertical-align: middle;">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+          </svg>
+          GitHub
+        </a>
+        <a href="#connect" class="btn-get-started">Get Started</a>
       </div>
-      <div class="terminal-window">
-        <div class="terminal-header">
-          <div class="terminal-dots">
-            <div class="terminal-dot dot-red"></div>
-            <div class="terminal-dot dot-yellow"></div>
-            <div class="terminal-dot dot-green"></div>
-          </div>
-          <div class="terminal-title">bash</div>
-        </div>
-        <div class="terminal-body">
-          <div class="terminal-line"><span class="terminal-input">$ npx helixbox-cli</span></div>
-          <div class="terminal-line"><span class="terminal-output">Helixbox CLI v0.1.122</span></div>
-          <div class="terminal-line"><span class="terminal-output">Establishing tunnel to wss://gateway.helixbox.xyz...</span></div>
-          <div class="terminal-line"><span class="terminal-success">✔ Pairing Code: 512-908-112</span></div>
-          <div class="terminal-line"><span class="terminal-output">Waiting for mobile app to connect...</span></div>
+    </header>
+    <section class="hero">
+      <div class="hero-content">
+        <h1>Build, run, and ship directly from your phone.</h1>
+        <p>Helixbox lets you use your full development environment from your phone so you can build, run, and manage your projects from anywhere.</p>
+        <div class="hero-buttons">
+          <a href="https://github.com/devndesigner6/helix-box./releases" target="_blank" class="btn-hero btn-black">Get Helixbox</a>
+          <a href="https://github.com/devndesigner6/helix-box." target="_blank" class="btn-hero btn-white">Join Community</a>
         </div>
       </div>
     </section>
-    <section class="features">
+  </div>
+  <section id="features" class="section-features">
+    <h2>Features</h2>
+    <div class="grid-features">
       <div class="feature-card">
         <div class="feature-icon">⌨</div>
         <h3>Interactive PTY Terminal</h3>
-        <p>Run complex shell commands with full PTY color, input capability, control sequences, and custom keyboard layouts directly in the app.</p>
+        <p>Run complex shell commands with full PTY color, input capability, control sequences, and custom keyboard layouts directly from your phone.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">📁</div>
@@ -2217,44 +2097,14 @@ function startManager(): void {
         <h3>Port Forwarding</h3>
         <p>Expose and route local development ports (like 3000, 8080) straight to your mobile device for rapid testing.</p>
       </div>
-    </section>
-    <section id="install" class="setup-guide">
-      <h2>Quick Start Guide</h2>
-      <div class="steps">
-        <div class="step">
-          <div class="step-num">1</div>
-          <div class="step-content">
-            <h4>Download the App</h4>
-            <p>Download and install the <strong>helixbox.apk</strong> installer on your Android phone from the <a href="https://github.com/devndesigner6/helix-box./releases" target="_blank" style="color:var(--accent);">GitHub Releases page</a>.</p>
-          </div>
-        </div>
-        <div class="step">
-          <div class="step-num">2</div>
-          <div class="step-content">
-            <h4>Start the CLI</h4>
-            <p>On your developer computer, run the global executable command:</p>
-            <div class="code-block">npx helixbox-cli</div>
-          </div>
-        </div>
-        <div class="step">
-          <div class="step-num">3</div>
-          <div class="step-content">
-            <h4>Pair & Workspace</h4>
-            <p>Scan the generated QR Code or type in the pairing code in the mobile application to start coding remotely!</p>
-          </div>
-        </div>
-      </div>
-    </section>
-  </main>
+    </div>
+  </section>
   <footer>
     <p>&copy; ${new Date().getFullYear()} Helixbox. Built securely with end-to-end WebSocket transport.</p>
   </footer>
 </body>
 </html>`;
   };
-
-  const renderManagerPage = (): string => {
-    return `<!doctype html>
 <html>
 <head>
   <meta charset="utf-8" />
