@@ -1,0 +1,2539 @@
+// Codex AI provider — spawns `codex app-server` and speaks JSON-RPC 2.0
+// over stdin/stdout. Maps Codex's thread/turn model onto Lunel's AIProvider
+// contract using the same thread/list + thread/read flow used by Remodex.
+
+import * as crypto from "crypto";
+import * as path from "path";
+import { spawn, ChildProcess } from "child_process";
+import { createInterface } from "readline";
+import type {
+  AIProvider,
+  AiEventEmitter,
+  CodexPromptOptions,
+  FileAttachment,
+  ModelSelector,
+  MessageInfo,
+  ProviderInfo,
+  SessionInfo,
+  ShareInfo,
+} from "./interface.js";
+
+interface JsonRpcRequest {
+  jsonrpc: "2.0";
+  id: number | string;
+  method: string;
+  params?: unknown;
+}
+
+interface JsonRpcResponse {
+  jsonrpc: "2.0";
+  id: number | string | null;
+  result?: unknown;
+  error?: { code: number; message: string; data?: unknown };
+}
+
+type JsonRpcOutbound = JsonRpcRequest | JsonRpcResponse;
+
+interface JsonRpcInbound {
+  jsonrpc: "2.0";
+  method: string;
+  id?: number | string | null;
+  params?: unknown;
+}
+
+interface CodexSession {
+  id: string;
+  title: string;
+  createdAt: number;
+  updatedAt: number;
+  archived?: boolean;
+  activeTurnId?: string;
+  cwd?: string;
+  messages: MessageInfo[];
+}
+
+interface ThreadListEntry {
+  id: string;
+  title?: string;
+  createdAt?: number;
+  updatedAt?: number;
+  archived?: boolean;
+  cwd?: string;
+}
+
+interface PendingRpc {
+  resolve: (result: unknown) => void;
+  reject: (err: Error) => void;
+}
+
+interface PendingPermission {
+  sessionId: string;
+  requestId: number | string;
+  method: string;
+  messageId?: string;
+  callId?: string;
+}
+
+interface PendingQuestionRequest {
+  sessionId: string;
+  requestId: number | string;
+  messageId?: string;
+  callId?: string;
+  questionIds: string[];
+}
+
+type PartType = "text" | "reasoning" | "plan" | "tool" | "file-change" | "step-start" | "step-finish";
+
+const THREAD_LIST_SOURCE_KINDS = ["cli", "vscode", "appServer", "exec", "unknown"];
+const CODEX_AGENTS = [
+  {
+    name: "Build",
+    mode: "default",
+    description: "Default Codex collaboration mode.",
+  },
+  {
+    name: "plan",
+    mode: "plan",
+    description: "Plan-first Codex collaboration mode.",
+  },
+] as const;
+const DEBUG_MODE = process.env.HELIXBOX_DEBUG === "1" || process.env.HELIXBOX_DEBUG_AI === "1";
+
+function joinStreamingText(previousText: string, nextChunk: string): string {
+  if (!previousText) {
+    return nextChunk;
+  }
+
+  if (nextChunk.startsWith(previousText)) {
+    return nextChunk;
+  }
+
+  if (previousText.endsWith(nextChunk)) {
+    return previousText;
+  }
+
+  const maxOverlap = Math.min(previousText.length, nextChunk.length);
+  for (let overlap = maxOverlap; overlap > 0; overlap -= 1) {
+    if (previousText.slice(-overlap) === nextChunk.slice(0, overlap)) {
+      return previousText + nextChunk.slice(overlap);
+    }
+  }
+
+  return previousText + nextChunk;
+}
+
+export class CodexProvider implements AIProvider {
+  private proc: ChildProcess | null = null;
+  private shuttingDown = false;
+  private emitter: AiEventEmitter | null = null;
+  private defaultModelContextWindow: number | null = null;
+
+  private nextId = 1;
+  private pending = new Map<string, PendingRpc>();
+
+  private sessions = new Map<string, CodexSession>();
+  private deletedThreadIds = new Set<string>();
+  private resumedThreadIds = new Set<string>();
+  private pendingPermissionRequestIds = new Map<string, PendingPermission>();
+  private pendingQuestionRequestIds = new Map<string, PendingQuestionRequest>();
+  private assistantMessageIdByTurnId = new Map<string, string>();
+  private partTextById = new Map<string, string>();
+
+  private debugLog(message: string, fields?: Record<string, unknown>): void {
+    if (!DEBUG_MODE) return;
+    const suffix = fields ? ` ${JSON.stringify(fields)}` : "";
+    console.log(`[codex] ${message}${suffix}`);
+  }
+
+  private debugHistory(message: string, fields: Record<string, unknown>): void {
+    if (!DEBUG_MODE) return;
+    console.log(`[codex-history] ${message} ${JSON.stringify(fields)}`);
+  }
+
+  async init(): Promise<void> {
+    if (DEBUG_MODE) console.log("Starting Codex app-server...");
+
+    const windowsSpawnOptions = process.platform === "win32"
+      ? { shell: true as const }
+      : {};
+
+    this.proc = spawn("codex", ["app-server"], {
+      stdio: ["pipe", "pipe", "inherit"],
+      env: process.env,
+      ...windowsSpawnOptions,
+    });
+
+    const rl = createInterface({ input: this.proc.stdout! });
+    rl.on("line", (line) => this.handleLine(line));
+
+    this.proc.on("error", (err) => {
+      console.error("[codex] Failed to start codex process:", err.message);
+      this.emitter?.({ type: "sse_dead", properties: { error: err.message } });
+    });
+
+    this.proc.on("exit", (code) => {
+      if (!this.shuttingDown) {
+        const msg = `codex app-server exited with code ${code}`;
+        console.error(`[codex] ${msg}`);
+        this.emitter?.({ type: "sse_dead", properties: { error: msg } });
+      }
+    });
+
+    await this.call("initialize", {
+      clientInfo: { name: "helixbox", version: "1.0" },
+      capabilities: {
+        experimentalApi: true,
+      },
+    });
+    await this.refreshConfigDefaults().catch(() => {
+      // Config defaults are best-effort metadata only.
+    });
+    if (DEBUG_MODE) console.log("Codex ready.\n");
+  }
+
+  async destroy(): Promise<void> {
+    this.shuttingDown = true;
+    this.proc?.stdin?.end();
+    this.proc?.kill();
+    this.proc = null;
+  }
+
+  subscribe(emitter: AiEventEmitter): () => void {
+    this.emitter = emitter;
+    return () => {
+      this.emitter = null;
+    };
+  }
+
+  async createSession(title?: string): Promise<{ session: SessionInfo }> {
+    const result = await this.call("thread/start", {
+      cwd: process.cwd(),
+      persistExtendedHistory: true,
+    });
+    const threadObject = this.extractThreadObject(result);
+    const threadId = this.extractThreadId(threadObject);
+    if (!threadId) {
+      throw new Error("thread/start response missing threadId");
+    }
+
+    const threadTitle = this.extractThreadTitle(threadObject) || title || "Conversation";
+    const session = this.upsertSession({
+      id: threadId,
+      title: threadTitle,
+      createdAt: this.extractCreatedAt(threadObject) ?? Date.now(),
+      updatedAt: this.extractUpdatedAt(threadObject) ?? Date.now(),
+      archived: false,
+      cwd: this.extractThreadCwd(threadObject) ?? process.cwd(),
+    });
+    this.resumedThreadIds.add(threadId);
+
+    return { session: this.toSessionInfo(session) };
+  }
+
+  async listSessions(): Promise<{ sessions: unknown }> {
+    const activeThreads = await this.fetchServerThreads();
+    let archivedThreads: ThreadListEntry[] = [];
+    try {
+      archivedThreads = await this.fetchServerThreadsByArchiveState(true);
+    } catch {
+      // Some Codex runtimes may not support archived thread listing.
+    }
+
+    this.reconcileSessionsWithServer(activeThreads, archivedThreads);
+
+    const sessions = Array.from(this.sessions.values())
+      .filter((session) => !session.archived)
+      .filter((session) => !this.deletedThreadIds.has(session.id))
+      .filter((session) => this.belongsToCurrentRoot(session))
+      .sort((a, b) => a.updatedAt - b.updatedAt)
+      .map((session) => this.toSessionInfo(session));
+
+    return { sessions };
+  }
+
+  async getSession(id: string): Promise<{ session: SessionInfo }> {
+    const session = this.sessions.get(id);
+    if (session) {
+      return { session: this.toSessionInfo(session) };
+    }
+
+    await this.listSessions();
+    const next = this.sessions.get(id);
+    if (!next) {
+      throw Object.assign(new Error(`Session ${id} not found`), { code: "ENOENT" });
+    }
+    return { session: this.toSessionInfo(next) };
+  }
+
+  async deleteSession(id: string): Promise<{ deleted: boolean }> {
+    const session = this.sessions.get(id);
+
+    this.deletedThreadIds.add(id);
+    this.sessions.delete(id);
+    this.resumedThreadIds.delete(id);
+
+    try {
+      const params: Record<string, unknown> = { threadId: id };
+      if (session?.cwd) {
+        params.cwd = session.cwd;
+      }
+      await this.call("thread/archive", params);
+    } catch {
+      // Match Remodex behavior: delete is optimistic locally, archive is best effort.
+    }
+
+    return { deleted: true };
+  }
+
+  async renameSession(id: string, title: string): Promise<{ session: SessionInfo }> {
+    const trimmed = title.trim();
+    if (!trimmed) {
+      throw new Error("Session title cannot be empty");
+    }
+
+    const methodsToTry = [
+      { method: "thread/name/set", params: { threadId: id, name: trimmed } },
+      { method: "thread/name/set", params: { threadId: id, title: trimmed } },
+      { method: "thread/name/update", params: { threadId: id, name: trimmed } },
+      { method: "thread/name/update", params: { threadId: id, title: trimmed } },
+      { method: "thread/metadata/update", params: { threadId: id, title: trimmed } },
+      { method: "thread/update", params: { threadId: id, title: trimmed } },
+      { method: "thread/rename", params: { threadId: id, title: trimmed } },
+    ] as const;
+
+    let renamed = false;
+    let lastError: unknown = null;
+    for (const entry of methodsToTry) {
+      try {
+        await this.call(entry.method, entry.params);
+        renamed = true;
+        break;
+      } catch (err) {
+        lastError = err;
+      }
+    }
+
+    if (!renamed && lastError) {
+      throw lastError instanceof Error ? lastError : new Error(String(lastError));
+    }
+
+    const existing = this.sessions.get(id) ?? this.ensureLocalSession(id);
+    const session = this.upsertSession({
+      id,
+      title: trimmed,
+      createdAt: existing.createdAt,
+      updatedAt: Date.now(),
+      archived: existing.archived,
+      cwd: existing.cwd,
+    }, true);
+    return { session: this.toSessionInfo(session) };
+  }
+
+  async getMessages(sessionId: string): Promise<{ messages: MessageInfo[] }> {
+    const session = this.ensureLocalSession(sessionId);
+    this.debugLog("getMessages start", {
+      sessionId,
+      existingMessageCount: session.messages.length,
+      existingPartCount: session.messages.reduce((sum, message) => sum + ((message.parts as unknown[])?.length || 0), 0),
+    });
+    const result = await this.call("thread/read", {
+      threadId: session.id,
+      includeTurns: true,
+    });
+
+    const threadObject = this.extractThreadObject(result);
+    if (!threadObject) {
+      return { messages: session.messages };
+    }
+
+    this.logThreadReadSummary(sessionId, threadObject);
+
+    const historyMessages = this.decodeMessagesFromThreadRead(sessionId, threadObject);
+    this.debugLog("getMessages decoded thread", {
+      sessionId,
+      turnCount: this.readArray(threadObject.turns).length,
+      decodedMessageCount: historyMessages.length,
+      decodedPartCount: historyMessages.reduce((sum, message) => sum + ((message.parts as unknown[])?.length || 0), 0),
+      decodedRoles: historyMessages.map((message) => message.role),
+      decodedPartTypes: historyMessages.flatMap((message) =>
+        ((message.parts as unknown[]) || []).map((part) => String(this.asRecord(part).type ?? "unknown"))
+      ),
+    });
+    if (historyMessages.length > 0) {
+      session.messages = historyMessages;
+    }
+
+    this.upsertSession({
+      id: sessionId,
+      title: this.extractThreadTitle(threadObject),
+      createdAt: this.extractCreatedAt(threadObject) ?? session.createdAt,
+      updatedAt: this.extractUpdatedAt(threadObject) ?? session.updatedAt,
+      archived: false,
+      cwd: this.extractThreadCwd(threadObject) ?? session.cwd,
+    });
+
+    if (this.defaultModelContextWindow && this.defaultModelContextWindow > 0) {
+      this.emitter?.({
+        type: "session.usage",
+        properties: {
+          sessionID: sessionId,
+          tokenUsage: {
+            modelContextWindow: this.defaultModelContextWindow,
+          },
+        },
+      });
+    }
+
+    return { messages: session.messages };
+  }
+
+  async prompt(
+    sessionId: string,
+    text: string,
+    model?: ModelSelector,
+    agent?: string,
+    files: FileAttachment[] = [],
+    codexOptions?: CodexPromptOptions,
+  ): Promise<{ ack: true }> {
+    const session = this.ensureLocalSession(sessionId);
+    session.updatedAt = Date.now();
+
+    (async () => {
+      try {
+        const modelId = await this.resolveModelId(model);
+        const modelInfo = await this.fetchModelById(modelId);
+        const effortLevels = modelInfo?.supportedReasoningEfforts.map((effort) => effort.reasoningEffort) ?? [];
+        const defaultEffort = modelInfo?.defaultReasoningEffort ?? effortLevels[0] ?? "medium";
+        const requestedEffort = codexOptions?.reasoningEffort;
+        const reasoningEffort = requestedEffort && effortLevels.includes(requestedEffort)
+          ? requestedEffort
+          : defaultEffort;
+        const requestedSpeedTier = codexOptions?.speed && codexOptions.speed !== "default"
+          ? codexOptions.speed
+          : undefined;
+        const serviceTier = requestedSpeedTier && modelInfo?.additionalSpeedTiers.includes(requestedSpeedTier)
+          ? requestedSpeedTier
+          : undefined;
+        const collaborationMode = this.buildCollaborationMode(agent, modelId, reasoningEffort);
+        // Freshly created sessions already have a live backend thread from
+        // thread/start. Forcing thread/resume here can attach stale state to a
+        // brand-new session and trigger rollout lookup failures on turn/start.
+        await this.ensureThreadResumed(session.id, false, codexOptions, collaborationMode);
+        let imageUrlKey: "url" | "image_url" = "url";
+        while (true) {
+          try {
+            await this.call("turn/start", {
+              threadId: session.id,
+              input: this.makeTurnInputPayload(text, files, imageUrlKey),
+              ...(modelId ? { model: modelId } : {}),
+              ...(reasoningEffort ? { effort: reasoningEffort } : {}),
+              ...(serviceTier ? { serviceTier } : {}),
+              ...(collaborationMode ? { collaborationMode } : {}),
+            });
+            break;
+          } catch (err) {
+            if (
+              imageUrlKey === "url"
+              && files.length > 0
+              && this.shouldRetryTurnStartWithImageURLField(err)
+            ) {
+              imageUrlKey = "image_url";
+              continue;
+            }
+            throw err;
+          }
+        }
+      } catch (err) {
+        const message = (err as Error).message;
+        console.error("[codex] turn/start error:", message);
+        this.emitter?.({ type: "prompt_error", properties: { sessionId, error: message } });
+      }
+    })();
+
+    return { ack: true };
+  }
+
+  async abort(sessionId: string): Promise<Record<string, never>> {
+    const session = this.ensureLocalSession(sessionId);
+    const turnId = session.activeTurnId ?? await this.resolveInFlightTurnId(session.id);
+    if (!turnId) {
+      throw new Error(`Session ${sessionId} has no active interruptible Codex turn`);
+    }
+    session.activeTurnId = turnId;
+    await this.call("turn/interrupt", { threadId: session.id, turnId });
+    return {};
+  }
+
+  async agents(): Promise<{ agents: unknown }> {
+    return { agents: [...CODEX_AGENTS] };
+  }
+
+  async providers(): Promise<ProviderInfo> {
+    const items = await this.fetchModels();
+    const models = Object.fromEntries(
+      items.map((item) => [
+        item.model,
+        {
+          id: item.model,
+          name: item.displayName || item.model,
+          provider: "codex",
+          description: item.description,
+          defaultReasoningEffort: item.defaultReasoningEffort,
+          supportedReasoningEfforts: item.supportedReasoningEfforts,
+          additionalSpeedTiers: item.additionalSpeedTiers,
+        },
+      ])
+    );
+
+    const defaultModel = items.find((item) => item.isDefault)?.model;
+    return {
+      providers: items.length > 0
+        ? [{ id: "codex", name: "Codex", models }]
+        : [],
+      default: defaultModel ? { codex: defaultModel } : {},
+    };
+  }
+
+  async setAuth(providerId: string, key: string): Promise<Record<string, never>> {
+    throw new Error("Codex auth configuration is not supported by Lunel yet");
+  }
+
+  async command(sessionId: string, command: string, args: string): Promise<{ result: unknown }> {
+    throw new Error("Codex command execution is not supported by Lunel yet");
+  }
+
+  async revert(sessionId: string, messageId: string): Promise<Record<string, never>> {
+    throw new Error("Codex revert is not supported by Lunel yet");
+  }
+
+  async unrevert(sessionId: string): Promise<Record<string, never>> {
+    throw new Error("Codex unrevert is not supported by Lunel yet");
+  }
+
+  async share(sessionId: string): Promise<{ share: ShareInfo }> {
+    return { share: { url: null } };
+  }
+
+  async permissionReply(
+    sessionId: string,
+    permissionId: string,
+    response: "once" | "always" | "reject",
+  ): Promise<Record<string, never>> {
+    const pending = this.pendingPermissionRequestIds.get(permissionId);
+    if (!pending) {
+      throw new Error(`Codex permission request ${permissionId} is no longer pending`);
+    }
+
+    const decision = response === "reject"
+      ? "decline"
+      : response === "always"
+        ? "acceptForSession"
+        : "accept";
+
+    const isCommandApproval = this.isCommandApprovalMethod(pending.method);
+    const result = isCommandApproval
+      ? { decision }
+      : decision;
+
+    this.send({ jsonrpc: "2.0", id: pending.requestId, result });
+    this.pendingPermissionRequestIds.delete(permissionId);
+    this.emitter?.({
+      type: "permission.replied",
+      properties: { sessionID: sessionId, permissionId, response },
+    });
+    return {};
+  }
+
+  async questionReply(
+    sessionId: string,
+    questionId: string,
+    answers: string[][],
+  ): Promise<Record<string, never>> {
+    const pending = this.pendingQuestionRequestIds.get(questionId);
+    if (!pending) {
+      this.emitter?.({
+        type: "question.replied",
+        properties: { sessionID: sessionId, requestID: questionId, answers, skipped: true },
+      });
+      return {};
+    }
+
+    const responseAnswers: Record<string, { answers: string[] }> = {};
+    pending.questionIds.forEach((id, index) => {
+      responseAnswers[id] = {
+        answers: Array.isArray(answers[index]) ? answers[index].filter((value): value is string => typeof value === "string") : [],
+      };
+    });
+
+    this.send({
+      jsonrpc: "2.0",
+      id: pending.requestId,
+      result: { answers: responseAnswers },
+    });
+    this.pendingQuestionRequestIds.delete(questionId);
+    this.emitter?.({
+      type: "question.replied",
+      properties: { sessionID: sessionId, requestID: questionId, answers },
+    });
+    return {};
+  }
+
+  async questionReject(
+    sessionId: string,
+    questionId: string,
+  ): Promise<Record<string, never>> {
+    const pending = this.pendingQuestionRequestIds.get(questionId);
+    if (!pending) {
+      this.emitter?.({
+        type: "question.rejected",
+        properties: { sessionID: sessionId, requestID: questionId, skipped: true },
+      });
+      return {};
+    }
+
+    this.send({
+      jsonrpc: "2.0",
+      id: pending.requestId,
+      result: { answers: {} },
+    });
+    this.pendingQuestionRequestIds.delete(questionId);
+    this.emitter?.({
+      type: "question.rejected",
+      properties: { sessionID: sessionId, requestID: questionId },
+    });
+    return {};
+  }
+
+  private send(req: JsonRpcOutbound): void {
+    if (!this.proc?.stdin?.writable) return;
+    this.proc.stdin.write(JSON.stringify(req) + "\n");
+  }
+
+  private call(method: string, params: unknown): Promise<unknown> {
+    return new Promise((resolve, reject) => {
+      const id = this.nextId++;
+      const key = String(id);
+      this.pending.set(key, { resolve, reject });
+      this.send({ jsonrpc: "2.0", id, method, params });
+
+      setTimeout(() => {
+        if (this.pending.has(key)) {
+          this.pending.delete(key);
+          reject(new Error(`Codex RPC timeout: ${method} (id=${id})`));
+        }
+      }, 30_000);
+    });
+  }
+
+  private handleLine(line: string): void {
+    let msg: JsonRpcResponse | JsonRpcInbound;
+    try {
+      msg = JSON.parse(line);
+    } catch {
+      return;
+    }
+
+    if ("method" in msg && typeof (msg as JsonRpcInbound).method === "string") {
+      const inbound = msg as JsonRpcInbound;
+      const params = this.asRecord(inbound.params);
+      if (inbound.id != null) {
+        this.handleServerRequest(inbound.method, inbound.id, params);
+      } else {
+        this.handleNotification(inbound.method, params);
+      }
+      return;
+    }
+
+    if ("id" in msg) {
+      const resp = msg as JsonRpcResponse;
+      const pending = this.pending.get(String(resp.id));
+      if (!pending) return;
+
+      this.pending.delete(String(resp.id));
+      if (resp.error) {
+        pending.reject(new Error(resp.error.message));
+      } else {
+        pending.resolve(resp.result ?? null);
+      }
+    }
+  }
+
+  private handleServerRequest(method: string, requestId: number | string, params: Record<string, unknown>): void {
+    const session = this.resolveSessionFromPayload(params);
+
+    if (method === "item/tool/requestUserInput") {
+      const questionRequestId = String(requestId);
+      const callId = this.extractItemId(params) ?? undefined;
+      const messageId = session ? this.ensureAssistantMessage(session, this.extractTurnId(params) ?? `session:${session.id}`) : undefined;
+      const questions = this.extractStructuredUserInputQuestions(params);
+      this.pendingQuestionRequestIds.set(questionRequestId, {
+        sessionId: session?.id ?? "",
+        requestId,
+        messageId,
+        callId,
+        questionIds: questions.map((question) => this.readString(this.asRecord(question).id)).filter((value): value is string => Boolean(value)),
+      });
+
+      this.emitter?.({
+        type: "question.asked",
+        properties: {
+          id: questionRequestId,
+          sessionID: session?.id,
+          questions,
+          tool: {
+            ...(messageId ? { messageID: messageId } : {}),
+            ...(callId ? { callID: callId } : {}),
+          },
+        },
+      });
+      return;
+    }
+
+    if (
+      method === "item/commandExecution/requestApproval"
+      || method === "item/fileChange/requestApproval"
+      || method.endsWith("requestApproval")
+    ) {
+      const permissionId = String(requestId);
+      const callId = this.extractItemId(params) ?? undefined;
+      const messageId = session ? this.ensureAssistantMessage(session, this.extractTurnId(params) ?? `session:${session.id}`) : undefined;
+      this.pendingPermissionRequestIds.set(permissionId, {
+        sessionId: session?.id ?? "",
+        requestId,
+        method,
+        messageId,
+        callId,
+      });
+
+      this.emitter?.({
+        type: "permission.updated",
+        properties: {
+          id: permissionId,
+          sessionID: session?.id,
+          messageID: messageId,
+          callID: callId,
+          type: method,
+          title: this.readString(params.reason) ?? this.readString(params.command) ?? method,
+          metadata: params,
+        },
+      });
+      return;
+    }
+
+    this.send({
+      jsonrpc: "2.0",
+      id: requestId,
+      error: { code: -32601, message: `Unsupported request method: ${method}` },
+    });
+  }
+
+  private handleNotification(method: string, params: Record<string, unknown>): void {
+    this.ingestThreadMetadata(params);
+
+    const session = this.resolveSessionFromPayload(params);
+    switch (method) {
+      case "thread/started":
+      case "thread/name/updated":
+        if (session) {
+          this.upsertSession({
+            id: session.id,
+            title: this.extractThreadTitle(params),
+            createdAt: this.extractCreatedAt(params) ?? session.createdAt,
+            updatedAt: this.extractUpdatedAt(params) ?? Date.now(),
+            archived: false,
+          }, true);
+        }
+        return;
+
+      case "thread/status/changed":
+        if (session) {
+          this.upsertSession({
+            id: session.id,
+            title: this.extractThreadTitle(params),
+            createdAt: this.extractCreatedAt(params) ?? session.createdAt,
+            updatedAt: this.extractUpdatedAt(params) ?? Date.now(),
+            archived: session.archived,
+          }, true);
+          this.emitter?.({
+            type: "session.status",
+            properties: { sessionID: session.id, status: params.status ?? params },
+          });
+        }
+        return;
+
+      case "turn/started":
+        if (session) {
+          const turnId = this.extractTurnId(params);
+          if (turnId) session.activeTurnId = turnId;
+          session.updatedAt = Date.now();
+          this.emitter?.({
+            type: "session.status",
+            properties: { sessionID: session.id, status: { type: "running" } },
+          });
+        }
+        return;
+
+      case "thread/tokenUsage/updated":
+        if (session) {
+          this.emitter?.({
+            type: "session.usage",
+            properties: {
+              sessionID: session.id,
+              tokenUsage: params.tokenUsage ?? null,
+            },
+          });
+        }
+        return;
+
+      case "turn/completed":
+      case "turn/failed":
+        if (session) {
+          session.activeTurnId = undefined;
+          session.updatedAt = Date.now();
+          this.finishAssistantTurn(session, params, method === "turn/failed");
+          this.refreshSessionMetadata(session.id).catch(() => {
+            // Best-effort metadata refresh for title/preview updates after a turn ends.
+          });
+          this.emitter?.({ type: "session.idle", properties: { sessionID: session.id } });
+          if (method === "turn/failed") {
+            const error = this.readString(this.asRecord(params.error).message) ?? "Turn failed";
+            this.emitter?.({ type: "session.error", properties: { sessionID: session.id, error } });
+          }
+        }
+        return;
+
+      case "error":
+      case "codex/event/error":
+        if (session) {
+          const error = this.readString(this.asRecord(params.error).message)
+            ?? this.readString(params.message)
+            ?? "Codex error";
+          this.emitter?.({ type: "session.error", properties: { sessionID: session.id, error } });
+        }
+        return;
+
+      case "codex/event/user_message":
+        this.emitMirroredUserMessage(session, params);
+        return;
+
+      case "item/started":
+      case "codex/event/item_started":
+        this.handleItemStarted(session, params);
+        return;
+
+      case "item/agentMessage/delta":
+      case "codex/event/agent_message_content_delta":
+      case "codex/event/agent_message_delta":
+        this.emitTextPart(session, params, "text", false);
+        return;
+
+      case "item/reasoning/summaryTextDelta":
+      case "item/reasoning/summaryPartAdded":
+      case "item/reasoning/textDelta":
+        this.emitTextPart(session, params, "reasoning", false);
+        return;
+
+      case "item/fileChange/outputDelta":
+      case "item/toolCall/outputDelta":
+      case "item/toolCall/output_delta":
+      case "item/tool_call/outputDelta":
+      case "item/tool_call/output_delta":
+      case "item/commandExecution/outputDelta":
+      case "item/command_execution/outputDelta":
+      case "codex/event/exec_command_output_delta":
+      case "codex/event/read":
+      case "codex/event/search":
+      case "codex/event/list_files":
+        this.emitStructuredToolPart(session, method, params, false);
+        return;
+
+      case "turn/diff/updated":
+      case "codex/event/turn_diff_updated":
+      case "codex/event/turn_diff":
+        this.emitStructuredToolPart(session, method, params, true);
+        return;
+
+      case "item/completed":
+      case "codex/event/item_completed":
+      case "codex/event/agent_message":
+      case "codex/event/exec_command_end":
+      case "codex/event/patch_apply_end":
+        if (this.handleStructuredItemCompleted(session, params)) {
+          return;
+        }
+        this.emitTextPart(session, params, "text", true);
+        return;
+
+      case "serverRequest/resolved": {
+        const permissionId = this.readString(params.requestId) ?? this.readString(params.requestID);
+        if (permissionId && this.pendingPermissionRequestIds.has(permissionId)) {
+          this.pendingPermissionRequestIds.delete(permissionId);
+          this.emitter?.({ type: "permission.replied", properties: { permissionId } });
+        }
+        if (permissionId && this.pendingQuestionRequestIds.has(permissionId)) {
+          this.pendingQuestionRequestIds.delete(permissionId);
+        }
+        return;
+      }
+
+      default:
+        return;
+    }
+  }
+
+  private isCommandApprovalMethod(method: string): boolean {
+    return method === "item/commandExecution/requestApproval"
+      || method === "item/command_execution/request_approval";
+  }
+
+  private emitMirroredUserMessage(session: CodexSession | undefined, params: Record<string, unknown>): void {
+    if (!session) return;
+    const text = this.readString(params.message) ?? this.readString(params.text);
+    if (!text) return;
+
+    const turnId = this.extractTurnId(params) ?? `mirrored:${crypto.randomUUID()}`;
+    const messageId = `user:${turnId}`;
+    if (!session.messages.find((message) => message.id === messageId)) {
+      session.messages.push({
+        id: messageId,
+        role: "user",
+        parts: [{ id: `${messageId}:text`, type: "text", text }],
+        time: Date.now(),
+      });
+    }
+
+    this.emitter?.({
+      type: "message.updated",
+      properties: { info: { sessionID: session.id, id: messageId, role: "user" } },
+    });
+    this.emitter?.({
+      type: "message.part.updated",
+      properties: {
+        part: { id: `${messageId}:text`, sessionID: session.id, messageID: messageId, type: "text", text },
+        message: { sessionID: session.id, id: messageId, role: "user" },
+      },
+    });
+  }
+
+  private handleItemStarted(session: CodexSession | undefined, params: Record<string, unknown>): void {
+    if (!session) return;
+
+    const item = this.extractIncomingItem(params);
+    const itemType = this.normalizedItemType(this.readString(item.type) ?? "");
+    if (itemType === "reasoning") {
+      this.emitTextPart(session, params, "reasoning", false);
+      return;
+    }
+
+    if (
+      itemType === "toolcall"
+      || itemType === "commandexecution"
+      || itemType === "filechange"
+      || itemType === "diff"
+      || itemType === "plan"
+      || itemType === "contextcompaction"
+      || itemType === "enteredreviewmode"
+    ) {
+      this.emitStructuredToolPart(session, itemType, params, false);
+      return;
+    }
+
+    if (this.isAssistantMessageItem(itemType, this.readString(item.role))) {
+      this.ensureAssistantMessage(session, this.extractTurnId(params) ?? `session:${session.id}`);
+    }
+  }
+
+  private handleStructuredItemCompleted(session: CodexSession | undefined, params: Record<string, unknown>): boolean {
+    if (!session) return false;
+
+    const item = this.extractIncomingItem(params);
+    const itemType = this.normalizedItemType(this.readString(item.type) ?? "");
+    if (
+      itemType === "toolcall"
+      || itemType === "commandexecution"
+      || itemType === "filechange"
+      || itemType === "diff"
+      || itemType === "plan"
+      || itemType === "contextcompaction"
+      || itemType === "enteredreviewmode"
+    ) {
+      this.emitStructuredToolPart(session, itemType, params, true);
+      return true;
+    }
+
+    return false;
+  }
+
+  private emitTextPart(
+    session: CodexSession | undefined,
+    params: Record<string, unknown>,
+    partType: "text" | "reasoning",
+    preferWholeText: boolean,
+  ): void {
+    if (!session) return;
+
+    const turnId = this.extractTurnId(params) ?? session.activeTurnId ?? `session:${session.id}`;
+    const messageId = this.ensureAssistantMessage(session, turnId);
+    const partKey = `${messageId}:${partType}:${this.extractItemId(params) ?? "main"}`;
+    const nextChunk = this.extractTextPayload(params);
+    if (!nextChunk) return;
+
+    const previousText = this.partTextById.get(partKey) ?? "";
+    const nextText = preferWholeText
+      ? nextChunk
+      : joinStreamingText(previousText, nextChunk);
+    this.partTextById.set(partKey, nextText);
+    session.updatedAt = Date.now();
+
+    this.upsertLocalMessagePart(session, messageId, {
+      id: partKey,
+      sessionID: session.id,
+      messageID: messageId,
+      type: partType,
+      text: nextText,
+    });
+
+    this.emitMessagePartEvent(session.id, messageId, "assistant", {
+      id: partKey,
+      sessionID: session.id,
+      messageID: messageId,
+      type: partType,
+      text: nextText,
+    });
+  }
+
+  private emitStructuredToolPart(
+    session: CodexSession | undefined,
+    method: string,
+    params: Record<string, unknown>,
+    completed: boolean,
+  ): void {
+    if (!session) return;
+
+    const turnId = this.extractTurnId(params) ?? session.activeTurnId ?? `session:${session.id}`;
+    const messageId = this.ensureAssistantMessage(session, turnId);
+    const item = this.extractIncomingItem(params);
+    const normalizedType = this.normalizeStructuredType(this.readString(item.type) ?? method);
+    const itemId = this.extractItemId(params) ?? this.readString(item.id) ?? normalizedType ?? "tool";
+    const fileChangeLike = this.isFileChangeStructuredItem(normalizedType, item, params);
+    const emittedPartType: PartType = normalizedType === "plan"
+      ? "plan"
+      : (fileChangeLike ? "file-change" : "tool");
+    const partId = `${messageId}:${emittedPartType}:${itemId}`;
+    const nextText = this.extractStructuredOutput(params, item, normalizedType);
+    const prevOutput = this.partTextById.get(partId) ?? "";
+    const output = completed
+      ? nextText ?? prevOutput
+      : `${prevOutput}${nextText ?? ""}`;
+
+    if (output) {
+      this.partTextById.set(partId, output);
+    }
+
+    const state = completed ? "completed" : "running";
+    const name = this.describeToolPart(normalizedType, method, item);
+    const input = this.extractToolInput(item, params);
+    const outputValue = output || this.describeCompletedItemOutput(item, params, normalizedType) || undefined;
+    const patch = emittedPartType === "file-change"
+      ? this.extractCanonicalPatch(params, item)
+      : undefined;
+
+    const part: Record<string, unknown> = {
+      id: partId,
+      sessionID: session.id,
+      messageID: messageId,
+      type: emittedPartType,
+      ...(emittedPartType === "plan"
+        ? { text: outputValue ?? (emittedPartType === "plan" ? "Planning..." : "") }
+        : { name, toolName: name, input, output: outputValue, state, ...(patch ? { patch } : {}) }),
+    };
+
+    this.upsertLocalMessagePart(session, messageId, part);
+    this.emitMessagePartEvent(session.id, messageId, "assistant", part);
+  }
+
+  private finishAssistantTurn(session: CodexSession, params: Record<string, unknown>, failed: boolean): void {
+    const turnId = this.extractTurnId(params);
+    if (!turnId) return;
+
+    const messageId = this.assistantMessageIdByTurnId.get(turnId);
+    if (!messageId) return;
+
+    const finishPartId = `${messageId}:finish`;
+    const part: Record<string, unknown> = {
+      id: finishPartId,
+      sessionID: session.id,
+      messageID: messageId,
+      type: "step-finish",
+      title: failed ? "Failed" : "Completed",
+      time: { end: Date.now() },
+    };
+    this.upsertLocalMessagePart(session, messageId, part);
+    this.emitMessagePartEvent(session.id, messageId, "assistant", part);
+  }
+
+  private emitMessagePartEvent(
+    sessionId: string,
+    messageId: string,
+    role: "user" | "assistant",
+    part: Record<string, unknown>,
+  ): void {
+    this.emitter?.({
+      type: "message.updated",
+      properties: { info: { sessionID: sessionId, id: messageId, role } },
+    });
+    this.emitter?.({
+      type: "message.part.updated",
+      properties: {
+        part,
+        message: { sessionID: sessionId, id: messageId, role },
+      },
+    });
+  }
+
+  private ensureAssistantMessage(session: CodexSession, turnId: string): string {
+    const existing = this.assistantMessageIdByTurnId.get(turnId);
+    if (existing) return existing;
+
+    const messageId = crypto.randomUUID();
+    this.assistantMessageIdByTurnId.set(turnId, messageId);
+    session.messages.push({
+      id: messageId,
+      role: "assistant",
+      parts: [{
+        id: `${messageId}:start`,
+        type: "step-start",
+        title: "Working",
+        time: { start: Date.now() },
+      }],
+      time: Date.now(),
+    });
+    return messageId;
+  }
+
+  private upsertLocalMessagePart(
+    session: CodexSession,
+    messageId: string,
+    part: Record<string, unknown>,
+  ): void {
+    const message = session.messages.find((entry) => entry.id === messageId);
+    if (!message) return;
+
+    const parts = Array.isArray(message.parts) ? [...message.parts] : [];
+    const idx = parts.findIndex((entry) => this.asRecord(entry).id === part.id);
+    if (idx >= 0) {
+      parts[idx] = part;
+    } else {
+      parts.push(part);
+    }
+    message.parts = parts;
+    message.time = Date.now();
+  }
+
+  private async fetchServerThreads(): Promise<ThreadListEntry[]> {
+    return this.fetchServerThreadsByArchiveState(false);
+  }
+
+  private async refreshConfigDefaults(): Promise<void> {
+    const result = await this.call("config/read", undefined);
+    const payload = this.asRecord(result);
+    const config = this.asRecord(payload.config ?? result);
+    const raw = config.model_context_window;
+    if (typeof raw === "number" && Number.isFinite(raw) && raw > 0) {
+      this.defaultModelContextWindow = raw;
+      return;
+    }
+    if (typeof raw === "string" && raw.trim()) {
+      const parsed = Number(raw);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        this.defaultModelContextWindow = parsed;
+      }
+    }
+  }
+
+  private async refreshSessionMetadata(sessionId: string): Promise<void> {
+    const session = this.sessions.get(sessionId);
+    const result = await this.call("thread/read", {
+      threadId: sessionId,
+      includeTurns: false,
+    });
+    const threadObject = this.extractThreadObject(result);
+    if (!threadObject || Object.keys(threadObject).length === 0) {
+      return;
+    }
+
+    this.upsertSession({
+      id: sessionId,
+      title: this.extractThreadTitle(threadObject),
+      createdAt: this.extractCreatedAt(threadObject) ?? session?.createdAt ?? Date.now(),
+      updatedAt: this.extractUpdatedAt(threadObject) ?? session?.updatedAt ?? Date.now(),
+      archived: false,
+      cwd: this.extractThreadCwd(threadObject) ?? session?.cwd,
+    }, true);
+  }
+
+  private async fetchServerThreadsByArchiveState(archived: boolean): Promise<ThreadListEntry[]> {
+    const threads: ThreadListEntry[] = [];
+    let nextCursor: unknown = null;
+    let hasRequestedFirstPage = false;
+
+    do {
+      const result = await this.call("thread/list", {
+        sourceKinds: THREAD_LIST_SOURCE_KINDS,
+        archived,
+        cursor: nextCursor,
+      });
+      const payload = this.asRecord(result);
+      const page = Array.isArray(payload.data)
+        ? payload.data
+        : Array.isArray(payload.items)
+          ? payload.items
+          : Array.isArray(payload.threads)
+            ? payload.threads
+            : [];
+      for (const entry of page) {
+        const parsed = this.parseThreadListEntry(entry, archived);
+        if (parsed) threads.push(parsed);
+      }
+
+      nextCursor = payload.nextCursor ?? payload.next_cursor ?? null;
+      hasRequestedFirstPage = true;
+    } while (hasRequestedFirstPage && this.hasNextCursor(nextCursor));
+
+    return threads;
+  }
+
+  private async fetchModels(): Promise<Array<{
+    id: string;
+    model: string;
+    displayName: string;
+    description: string;
+    isDefault: boolean;
+    defaultReasoningEffort?: string;
+    supportedReasoningEfforts: Array<{
+      reasoningEffort: string;
+      description?: string;
+    }>;
+    additionalSpeedTiers: string[];
+  }>> {
+    const result = await this.call("model/list", {
+      cursor: null,
+      limit: 50,
+      includeHidden: false,
+    });
+    const payload = this.asRecord(result);
+    const items = Array.isArray(payload.items)
+      ? payload.items
+      : Array.isArray(payload.data)
+        ? payload.data
+        : Array.isArray(payload.models)
+          ? payload.models
+          : [];
+    return items
+      .map((value) => {
+        const obj = this.asRecord(value);
+        const model = this.readString(obj.model) ?? this.readString(obj.id);
+        if (!model) return undefined;
+        const displayName = this.readString(obj.displayName)
+          ?? this.readString(obj.display_name)
+          ?? model;
+        const supportedReasoningEfforts = Array.isArray(obj.supportedReasoningEfforts)
+          ? obj.supportedReasoningEfforts
+            .map<{ reasoningEffort: string; description?: string } | undefined>((effort) => {
+              const effortObj = this.asRecord(effort);
+              const reasoningEffort = this.readString(effortObj.reasoningEffort)
+                ?? this.readString(effortObj.reasoning_effort);
+              if (!reasoningEffort) return undefined;
+              const description = this.readString(effortObj.description);
+              return {
+                reasoningEffort,
+                ...(description ? { description } : {}),
+              };
+            })
+            .filter((effort): effort is { reasoningEffort: string; description?: string } => Boolean(effort))
+          : [];
+        const defaultReasoningEffort = this.readString(obj.defaultReasoningEffort)
+          ?? this.readString(obj.default_reasoning_effort);
+        const additionalSpeedTiers = Array.isArray(obj.additionalSpeedTiers)
+          ? obj.additionalSpeedTiers.filter((tier): tier is string => typeof tier === "string" && tier.length > 0)
+          : [];
+        return {
+          id: this.readString(obj.id) ?? model,
+          model,
+          displayName,
+          description: this.readString(obj.description) ?? "",
+          isDefault: Boolean(obj.isDefault ?? obj.is_default),
+          ...(defaultReasoningEffort ? { defaultReasoningEffort } : {}),
+          supportedReasoningEfforts,
+          additionalSpeedTiers,
+        };
+      })
+      .filter((value): value is {
+        id: string;
+        model: string;
+        displayName: string;
+        description: string;
+        isDefault: boolean;
+        defaultReasoningEffort?: string;
+        supportedReasoningEfforts: Array<{
+          reasoningEffort: string;
+          description?: string;
+        }>;
+        additionalSpeedTiers: string[];
+      } => Boolean(value));
+  }
+
+  private async fetchModelById(modelId: string | undefined): Promise<{
+    id: string;
+    model: string;
+    displayName: string;
+    description: string;
+    isDefault: boolean;
+    defaultReasoningEffort?: string;
+    supportedReasoningEfforts: Array<{
+      reasoningEffort: string;
+      description?: string;
+    }>;
+    additionalSpeedTiers: string[];
+  } | undefined> {
+    const items = await this.fetchModels();
+    if (!modelId) {
+      return items.find((item) => item.isDefault) ?? items[0];
+    }
+    return items.find((item) => item.model === modelId || item.id === modelId)
+      ?? items.find((item) => item.isDefault)
+      ?? items[0];
+  }
+
+  private async resolveModelId(model?: ModelSelector): Promise<string | undefined> {
+    if (model) {
+      return model.providerID === "codex" ? model.modelID : `${model.providerID}/${model.modelID}`;
+    }
+
+    const items = await this.fetchModels();
+    return items.find((item) => item.isDefault)?.model ?? items[0]?.model;
+  }
+
+  private buildCollaborationMode(
+    agent: string | undefined,
+    modelId: string | undefined,
+    reasoningEffort: string,
+  ): Record<string, unknown> | undefined {
+    const normalizedAgent = (agent ?? "").trim().toLowerCase();
+    const mode = normalizedAgent === "build" ? "default" : normalizedAgent;
+    if (mode !== "default" && mode !== "plan") {
+      return undefined;
+    }
+    if (!modelId) {
+      return undefined;
+    }
+
+    return {
+      mode,
+      settings: {
+        model: modelId,
+        reasoning_effort: reasoningEffort,
+      },
+    };
+  }
+
+  private parseThreadListEntry(value: unknown, archived = false): ThreadListEntry | undefined {
+    const obj = this.asRecord(value);
+    const id = this.extractThreadId(obj);
+    if (!id) return undefined;
+
+    return {
+      id,
+      title: this.extractThreadTitle(obj),
+      createdAt: this.extractCreatedAt(obj),
+      updatedAt: this.extractUpdatedAt(obj),
+      archived,
+      cwd: this.extractThreadCwd(obj),
+    };
+  }
+
+  private hasNextCursor(value: unknown): boolean {
+    if (value == null) return false;
+    if (typeof value === "string") return value.trim().length > 0;
+    return true;
+  }
+
+  private ingestThreadMetadata(payload: unknown): void {
+    const threadId = this.extractThreadId(payload);
+    if (!threadId) return;
+
+    const title = this.extractThreadTitleFromUnknown(payload);
+    this.upsertSession({
+      id: threadId,
+      title,
+      createdAt: this.extractCreatedAt(payload) ?? Date.now(),
+      updatedAt: this.extractUpdatedAt(payload) ?? Date.now(),
+      cwd: this.extractThreadCwd(payload),
+    });
+  }
+
+  private reconcileSessionsWithServer(
+    activeThreads: ThreadListEntry[],
+    archivedThreads: ThreadListEntry[] = [],
+  ): void {
+    const localSessions = this.sessions;
+    const merged = new Map<string, CodexSession>();
+
+    for (const thread of activeThreads) {
+      if (this.deletedThreadIds.has(thread.id)) continue;
+      const session = this.mergeSession(localSessions.get(thread.id), { ...thread, archived: false });
+      merged.set(thread.id, session);
+    }
+
+    for (const thread of archivedThreads) {
+      if (this.deletedThreadIds.has(thread.id)) continue;
+      if (merged.has(thread.id)) continue;
+      const session = this.mergeSession(localSessions.get(thread.id), { ...thread, archived: true });
+      merged.set(thread.id, session);
+    }
+
+    for (const [id, session] of localSessions.entries()) {
+      if (!merged.has(id)) {
+        merged.set(id, session);
+      }
+    }
+
+    this.sessions = merged;
+  }
+
+  private mergeSession(existing: CodexSession | undefined, input: ThreadListEntry): CodexSession {
+    if (!existing) {
+      return {
+        id: input.id,
+        title: input.title ?? "Conversation",
+        createdAt: input.createdAt ?? Date.now(),
+        updatedAt: input.updatedAt ?? Date.now(),
+        archived: input.archived ?? false,
+        cwd: input.cwd,
+        messages: [],
+      };
+    }
+
+    existing.title = input.title ?? existing.title;
+    existing.createdAt = input.createdAt ?? existing.createdAt;
+    existing.updatedAt = input.updatedAt != null
+      ? Math.max(existing.updatedAt, input.updatedAt)
+      : existing.updatedAt;
+    existing.archived = input.archived ?? existing.archived ?? false;
+    existing.cwd = input.cwd ?? existing.cwd;
+    return existing;
+  }
+
+  private upsertSession(input: ThreadListEntry, emitUpdated = false): CodexSession {
+    const existing = this.sessions.get(input.id);
+    const before = existing
+      ? {
+        title: existing.title,
+        createdAt: existing.createdAt,
+        updatedAt: existing.updatedAt,
+        archived: existing.archived ?? false,
+        cwd: existing.cwd,
+      }
+      : null;
+    const session = this.mergeSession(existing, input);
+    this.sessions.set(session.id, session);
+
+    const changed = !before
+      || before.title !== session.title
+      || before.createdAt !== session.createdAt
+      || before.updatedAt !== session.updatedAt
+      || before.archived !== (session.archived ?? false)
+      || before.cwd !== session.cwd;
+    if (emitUpdated && changed) {
+      this.emitter?.({ type: "session.updated", properties: { info: this.toSessionInfo(session) } });
+    }
+    return session;
+  }
+
+  private ensureLocalSession(sessionId: string): CodexSession {
+    const existing = this.sessions.get(sessionId);
+    if (existing) return existing;
+    return this.upsertSession({ id: sessionId, title: "Conversation", createdAt: Date.now(), updatedAt: Date.now() });
+  }
+
+  private async ensureThreadResumed(
+    threadId: string,
+    force = false,
+    codexOptions?: CodexPromptOptions,
+    collaborationMode?: Record<string, unknown>,
+  ): Promise<void> {
+    if (!threadId || this.resumedThreadIds.has(threadId)) {
+      if (!force) return;
+    }
+
+    const session = this.sessions.get(threadId);
+    const params: Record<string, unknown> = {
+      threadId,
+      persistExtendedHistory: true,
+    };
+    if (session?.cwd) {
+      params.cwd = session.cwd;
+    }
+    const permissionMode = codexOptions?.permissionMode ?? "default";
+    if (permissionMode === "full-access") {
+      params.approvalPolicy = "never";
+      params.sandbox = "danger-full-access";
+    }
+    if (collaborationMode) {
+      params.collaborationMode = collaborationMode;
+    }
+
+    const result = await this.call("thread/resume", params);
+    const payload = this.asRecord(result);
+    const threadValue = payload.thread;
+    const threadObject = threadValue ? this.asRecord(threadValue) : this.extractThreadObject(result);
+    if (threadObject && Object.keys(threadObject).length > 0) {
+      const nextSession = this.upsertSession({
+        id: threadId,
+        title: this.extractThreadTitle(threadObject),
+        createdAt: this.extractCreatedAt(threadObject) ?? session?.createdAt ?? Date.now(),
+        updatedAt: this.extractUpdatedAt(threadObject) ?? session?.updatedAt ?? Date.now(),
+        archived: false,
+        cwd: this.extractThreadCwd(threadObject) ?? session?.cwd,
+      }, true);
+
+      const historyMessages = this.decodeMessagesFromThreadRead(threadId, threadObject);
+      if (historyMessages.length > 0 && (!nextSession.activeTurnId || nextSession.messages.length === 0 || force)) {
+        nextSession.messages = historyMessages;
+      }
+    }
+
+    this.resumedThreadIds.add(threadId);
+  }
+
+  private resolveSessionFromPayload(payload: Record<string, unknown>): CodexSession | undefined {
+    const threadId = this.extractThreadId(payload);
+    if (!threadId) return undefined;
+    return this.ensureLocalSession(threadId);
+  }
+
+  private async resolveInFlightTurnId(threadId: string): Promise<string | undefined> {
+    const result = await this.call("thread/read", { threadId, includeTurns: true });
+    const thread = this.extractThreadObject(result);
+    const turns = this.readArray(thread.turns);
+    for (const turn of turns.slice().reverse()) {
+      const turnObj = this.asRecord(turn);
+      const status = this.normalizedItemType(this.readString(turnObj.status) ?? this.readString(this.asRecord(turnObj.status).type) ?? "");
+      if (
+        status.includes("running")
+        || status.includes("active")
+        || status.includes("processing")
+        || status.includes("started")
+        || status.includes("pending")
+      ) {
+        return this.readString(turnObj.id);
+      }
+    }
+    return undefined;
+  }
+
+  private decodeMessagesFromThreadRead(threadId: string, threadObject: Record<string, unknown>): MessageInfo[] {
+    const turns = this.readArray(threadObject.turns);
+    const messages: MessageInfo[] = [];
+    let orderOffset = 0;
+
+    for (const turn of turns) {
+      const turnObject = this.asRecord(turn);
+      const turnId = this.readString(turnObject.id);
+      const turnTime = this.extractUpdatedAt(turnObject) ?? this.extractCreatedAt(turnObject) ?? Date.now();
+      const items = this.readArray(turnObject.items);
+      const assistantParts: Record<string, unknown>[] = [];
+      let assistantMessageId: string | undefined;
+      let assistantTimestamp = turnTime;
+      const turnItemTypes: string[] = [];
+
+      for (const item of items) {
+        const itemObject = this.asRecord(item);
+        const type = this.normalizedItemType(this.readString(itemObject.type) ?? "");
+        turnItemTypes.push(type || "unknown");
+        const itemId = this.readString(itemObject.id) ?? crypto.randomUUID();
+        const timestamp = this.extractUpdatedAt(itemObject) ?? this.extractCreatedAt(itemObject) ?? (turnTime + orderOffset++);
+
+        if (type === "usermessage") {
+          const parts = this.decodeUserMessageParts(itemObject, threadId, itemId);
+          if (parts.length === 0) continue;
+          messages.push({
+            id: itemId,
+            role: "user",
+            parts,
+            time: timestamp,
+          });
+          continue;
+        }
+
+        if (type === "agentmessage" || type === "assistantmessage" || (type === "message" && !this.isUserRole(itemObject))) {
+          const text = this.decodeItemText(itemObject);
+          if (!text) continue;
+          assistantMessageId = assistantMessageId ?? itemId;
+          assistantTimestamp = Math.max(assistantTimestamp, timestamp);
+          assistantParts.push({
+            id: `${assistantMessageId}:text:${itemId}`,
+            type: "text",
+            text,
+            sessionID: threadId,
+            messageID: assistantMessageId,
+          });
+          continue;
+        }
+
+        if (type === "reasoning") {
+          const text = this.decodeReasoningItemText(itemObject);
+          assistantMessageId = assistantMessageId ?? (turnId ? `assistant:${turnId}` : itemId);
+          assistantTimestamp = Math.max(assistantTimestamp, timestamp);
+          assistantParts.push({
+            id: `${assistantMessageId}:reasoning:${itemId}`,
+            type: "reasoning",
+            text,
+            sessionID: threadId,
+            messageID: assistantMessageId,
+          });
+          continue;
+        }
+
+        if (type === "plan") {
+          const text = this.decodePlanItemText(itemObject);
+          assistantMessageId = assistantMessageId ?? (turnId ? `assistant:${turnId}` : itemId);
+          assistantTimestamp = Math.max(assistantTimestamp, timestamp);
+          assistantParts.push({
+            id: `${assistantMessageId}:plan:${itemId}`,
+            type: "plan",
+            text,
+            sessionID: threadId,
+            messageID: assistantMessageId,
+          });
+          continue;
+        }
+
+        if (
+          type === "commandexecution"
+          || type === "enteredreviewmode"
+          || type === "exitedreviewmode"
+          || type === "contextcompaction"
+          || type === "mcptoolcall"
+          || type === "dynamictoolcall"
+          || type === "collabtoolcall"
+          || type === "collabagenttoolcall"
+          || type === "websearch"
+          || type === "imageview"
+        ) {
+          assistantMessageId = assistantMessageId ?? (turnId ? `assistant:${turnId}` : itemId);
+          assistantTimestamp = Math.max(assistantTimestamp, timestamp);
+          assistantParts.push(this.decodeStoredToolLikePart(type, itemObject, threadId, assistantMessageId, itemId));
+          continue;
+        }
+
+        if (type === "filechange" || type === "toolcall" || type === "diff") {
+          assistantMessageId = assistantMessageId ?? (turnId ? `assistant:${turnId}` : itemId);
+          assistantTimestamp = Math.max(assistantTimestamp, timestamp);
+          assistantParts.push(this.decodeStoredToolLikePart(type, itemObject, threadId, assistantMessageId, itemId));
+        }
+      }
+
+      if (assistantParts.length > 0) {
+        const resolvedAssistantMessageId = assistantMessageId ?? (turnId ? `assistant:${turnId}` : crypto.randomUUID());
+        messages.push({
+          id: resolvedAssistantMessageId,
+          role: "assistant",
+          parts: assistantParts.map((part) => ({
+            ...part,
+            sessionID: threadId,
+            messageID: resolvedAssistantMessageId,
+          })),
+          time: assistantTimestamp,
+        });
+        if (turnId) {
+          this.assistantMessageIdByTurnId.set(turnId, resolvedAssistantMessageId);
+        }
+      }
+
+      this.debugLog("decoded stored turn", {
+        threadId,
+        turnId: turnId ?? null,
+        itemCount: items.length,
+        itemTypes: turnItemTypes,
+        emittedUserMessages: messages.filter((message) => message.role === "user").length,
+        emittedAssistantParts: assistantParts.length,
+      });
+    }
+
+    return messages;
+  }
+
+  private logThreadReadSummary(sessionId: string, threadObject: Record<string, unknown>): void {
+    const turns = this.readArray(threadObject.turns);
+    const turnSummaries = turns.map((turn, index) => {
+      const turnObject = this.asRecord(turn);
+      const items = this.readArray(turnObject.items);
+      return {
+        index,
+        turnId: this.readString(turnObject.id) ?? null,
+        status: this.readString(turnObject.status) ?? this.readString(this.asRecord(turnObject.status).type) ?? null,
+        itemCount: items.length,
+        itemTypes: items.map((item) => this.normalizedItemType(this.readString(this.asRecord(item).type) ?? "") || "unknown"),
+        itemSummaries: items.map((item) => {
+          const itemObject = this.asRecord(item);
+          const type = this.normalizedItemType(this.readString(itemObject.type) ?? "") || "unknown";
+          return {
+            id: this.readString(itemObject.id) ?? null,
+            type,
+            keys: Object.keys(itemObject).sort(),
+            textPreview: this.firstString(itemObject, ["text", "summary", "message", "query", "path", "tool", "command"])?.slice(0, 120) ?? null,
+            hasAggregatedOutput: typeof itemObject.aggregatedOutput === "string" && itemObject.aggregatedOutput.length > 0,
+            aggregatedOutputLength: typeof itemObject.aggregatedOutput === "string" ? itemObject.aggregatedOutput.length : 0,
+            changesCount: Array.isArray(itemObject.changes) ? itemObject.changes.length : 0,
+            hasResult: itemObject.result != null,
+            hasContentItems: Array.isArray(itemObject.contentItems) && itemObject.contentItems.length > 0,
+            status: this.readString(itemObject.status) ?? null,
+          };
+        }),
+      };
+    });
+
+    this.debugHistory("thread/read summary", {
+      sessionId,
+      threadId: this.readString(threadObject.id) ?? null,
+      turnCount: turns.length,
+      turnSummaries,
+    });
+  }
+
+  private decodeStoredToolLikePart(
+    type: string,
+    itemObject: Record<string, unknown>,
+    threadId: string,
+    messageId: string,
+    itemId: string,
+  ): Record<string, unknown> {
+    if (type === "filechange" || type === "diff" || this.isFileChangeStructuredItem(type, itemObject)) {
+      const output = this.decodeFileLikeItemText(itemObject) ?? this.describeCompletedItemOutput(itemObject, itemObject, type) ?? "File changes";
+      const patch = this.extractCanonicalPatch(itemObject, itemObject);
+      return {
+        id: `${messageId}:file-change:${itemId}`,
+        type: "file-change",
+        name: this.describeToolPart(type, type, itemObject),
+        toolName: this.describeToolPart(type, type, itemObject),
+        output,
+        state: "completed",
+        ...(patch ? { patch } : {}),
+        sessionID: threadId,
+        messageID: messageId,
+      };
+    }
+
+    const name = this.describeStoredToolName(type, itemObject);
+    const input = this.extractStoredToolInput(type, itemObject);
+    const output = this.extractStoredToolOutput(type, itemObject);
+
+    return {
+      id: `${messageId}:tool:${itemId}`,
+      type: "tool",
+      name,
+      toolName: name,
+      ...(input !== undefined ? { input } : {}),
+      ...(output !== undefined ? { output } : {}),
+      state: "completed",
+      sessionID: threadId,
+      messageID: messageId,
+    };
+  }
+
+  private describeStoredToolName(type: string, itemObject: Record<string, unknown>): string {
+    if (type === "commandexecution") {
+      return "command";
+    }
+    if (type === "websearch") {
+      return "web-search";
+    }
+    if (type === "imageview") {
+      return "image-view";
+    }
+    if (type === "collabtoolcall" || type === "collabagenttoolcall") {
+      return "agent";
+    }
+    if (type === "enteredreviewmode") {
+      return "review";
+    }
+    if (type === "exitedreviewmode") {
+      return "review";
+    }
+    if (type === "contextcompaction") {
+      return "context";
+    }
+
+    return this.firstString(itemObject, [
+      "name",
+      "toolName",
+      "tool_name",
+      "title",
+      "serverToolName",
+      "server_tool_name",
+      "kind",
+    ]) ?? type;
+  }
+
+  private extractStoredToolInput(type: string, itemObject: Record<string, unknown>): unknown {
+    if (type === "commandexecution") {
+      return this.extractCommandExecutionInput(itemObject, itemObject);
+    }
+
+    return itemObject.input
+      ?? itemObject.arguments
+      ?? itemObject.args
+      ?? itemObject.query
+      ?? itemObject.path
+      ?? itemObject.url
+      ?? itemObject.command
+      ?? itemObject.pattern
+      ?? undefined;
+  }
+
+  private extractStoredToolOutput(type: string, itemObject: Record<string, unknown>): string | undefined {
+    if (type === "commandexecution") {
+      return this.decodeStoredCommandExecutionOutput(itemObject);
+    }
+
+    if (type === "enteredreviewmode") {
+      return `Reviewing ${this.readString(itemObject.review) ?? "changes"}...`;
+    }
+    if (type === "exitedreviewmode") {
+      return this.firstString(itemObject, ["summary", "text", "message"]) ?? "Exited review mode";
+    }
+    if (type === "contextcompaction") {
+      return "Context compacted";
+    }
+    if (type === "imageview") {
+      const path = this.firstString(itemObject, ["path", "file", "filePath", "file_path", "url"]);
+      return path ? `Viewed image ${path}` : "Viewed image";
+    }
+
+    const direct = this.firstString(itemObject, [
+      "aggregatedOutput",
+      "output",
+      "outputText",
+      "output_text",
+      "text",
+      "message",
+      "summary",
+      "result",
+      "content",
+    ]);
+    if (direct?.trim()) {
+      return direct.trim();
+    }
+
+    const flattened = this.flattenTextValue(itemObject.output ?? itemObject.result ?? itemObject.content).trim();
+    return flattened || undefined;
+  }
+
+  private decodeStoredCommandExecutionOutput(itemObject: Record<string, unknown>): string {
+    const aggregatedOutput = this.firstString(itemObject, [
+      "aggregatedOutput",
+      "aggregated_output",
+      "output",
+      "outputText",
+      "output_text",
+      "stdout",
+      "stderr",
+      "text",
+      "message",
+      "summary",
+    ]);
+    if (aggregatedOutput?.trim()) {
+      return aggregatedOutput.trim();
+    }
+
+    return this.decodeCommandExecutionItemText(itemObject, "commandexecution");
+  }
+
+  private decodeUserMessageParts(
+    itemObject: Record<string, unknown>,
+    threadId: string,
+    itemId: string,
+  ): Record<string, unknown>[] {
+    const parts: Record<string, unknown>[] = [];
+    const content = this.readArray(itemObject.content);
+    let fileIndex = 0;
+
+    for (const entry of content) {
+      const obj = this.asRecord(entry);
+      const type = this.normalizedItemType(this.readString(obj.type) ?? "");
+      if (type === "image" || type === "localimage") {
+        const url = this.readString(obj.url) ?? this.readString(obj.image_url) ?? this.readString(obj.imageUrl);
+        if (!url) continue;
+        parts.push({
+          id: `${itemId}:file:${fileIndex++}`,
+          type: "file",
+          mime: this.inferImageMimeFromDataUrl(url),
+          filename: this.readString(obj.filename) ?? this.readString(obj.name) ?? undefined,
+          url,
+          sessionID: threadId,
+          messageID: itemId,
+        });
+      }
+    }
+
+    const text = this.decodeItemText(itemObject);
+    if (text) {
+      parts.push({
+        id: `${itemId}:text`,
+        type: "text",
+        text,
+        sessionID: threadId,
+        messageID: itemId,
+      });
+    }
+
+    return parts;
+  }
+
+  private decodeItemText(itemObject: Record<string, unknown>): string {
+    const content = this.readArray(itemObject.content);
+    const parts: string[] = [];
+
+    for (const entry of content) {
+      const obj = this.asRecord(entry);
+      const type = this.normalizedItemType(this.readString(obj.type) ?? "");
+      if (type === "text" || type === "inputtext" || type === "outputtext" || type === "message") {
+        const text = this.readString(obj.text) ?? this.readString(this.asRecord(obj.data).text);
+        if (text) parts.push(text);
+      } else if (type === "skill") {
+        const skill = this.readString(obj.id) ?? this.readString(obj.name);
+        if (skill) parts.push(`$${skill}`);
+      }
+    }
+
+    const joined = parts.join("\n").trim();
+    return joined || this.readString(itemObject.text) || this.readString(itemObject.message) || "";
+  }
+
+  private makeTurnInputPayload(text: string, files: FileAttachment[], imageUrlKey: "url" | "image_url"): Array<Record<string, unknown>> {
+    const items: Array<Record<string, unknown>> = [];
+
+    for (const file of files) {
+      const url = typeof file.url === "string" ? file.url.trim() : "";
+      if (!url) continue;
+      items.push({
+        type: "image",
+        [imageUrlKey]: url,
+      });
+    }
+
+    const trimmedText = text.trim();
+    if (trimmedText) {
+      items.push({ type: "text", text: trimmedText });
+    }
+
+    return items;
+  }
+
+  private shouldRetryTurnStartWithImageURLField(error: unknown): boolean {
+    const message = (error instanceof Error ? error.message : String(error)).toLowerCase();
+    if (!message.includes("image_url")) {
+      return false;
+    }
+    return (
+      message.includes("missing")
+      || message.includes("unknown field")
+      || message.includes("expected")
+      || message.includes("invalid")
+    );
+  }
+
+  private inferImageMimeFromDataUrl(url: string): string {
+    const match = /^data:([^;,]+)[;,]/i.exec(url);
+    if (match?.[1]) {
+      return match[1];
+    }
+    return "image/jpeg";
+  }
+
+  private decodeReasoningItemText(itemObject: Record<string, unknown>): string {
+    const summary = this.flattenTextValue(itemObject.summary).trim();
+    const content = this.flattenTextValue(itemObject.content).trim();
+    return [summary, content].filter(Boolean).join("\n\n") || "Thinking...";
+  }
+
+  private decodePlanItemText(itemObject: Record<string, unknown>): string {
+    return this.decodeItemText(itemObject) || this.flattenTextValue(itemObject.summary).trim() || "Planning...";
+  }
+
+  private decodeCommandExecutionItemText(itemObject: Record<string, unknown>, type: string): string {
+    if (type === "enteredreviewmode") {
+      return `Reviewing ${this.readString(itemObject.review) ?? "changes"}...`;
+    }
+    if (type === "contextcompaction") {
+      return "Context compacted";
+    }
+
+    const status = this.readString(this.asRecord(itemObject.status).type) ?? this.readString(itemObject.status) ?? "completed";
+    const command = this.firstString(itemObject, ["command", "cmd", "raw_command", "rawCommand", "input", "invocation"]) ?? "command";
+    return `${this.normalizedCommandPhase(status)} ${this.shortCommand(command)}`;
+  }
+
+  private decodeFileLikeItemText(itemObject: Record<string, unknown>): string | undefined {
+    const status = this.normalizedFileChangeStatus(itemObject, true);
+    const changesBody = this.renderFileChangeEntriesBody(itemObject.changes);
+    if (changesBody) {
+      return `Status: ${status}\n\n${changesBody}`;
+    }
+
+    const diff = this.firstString(itemObject, ["diff", "unified_diff", "unifiedDiff", "patch"]);
+    if (diff?.trim()) {
+      return this.renderUnifiedDiffBody(diff, status);
+    }
+
+    const direct = this.firstString(itemObject, [
+      "text",
+      "message",
+      "summary",
+      "stdout",
+      "stderr",
+      "output_text",
+      "outputText",
+    ]);
+    if (direct?.trim()) {
+      return `Status: ${status}\n\n${direct.trim()}`;
+    }
+
+    return undefined;
+  }
+
+  private normalizedCommandPhase(rawStatus: string): string {
+    const normalized = rawStatus.trim().toLowerCase();
+    if (normalized.includes("fail") || normalized.includes("error")) return "failed";
+    if (normalized.includes("cancel") || normalized.includes("abort") || normalized.includes("interrupt")) return "stopped";
+    if (normalized.includes("complete") || normalized.includes("success") || normalized.includes("done")) return "completed";
+    return "running";
+  }
+
+  private shortCommand(rawCommand: string, maxLength = 92): string {
+    const normalized = rawCommand.trim().replace(/\s+/g, " ");
+    if (!normalized) return "command";
+    if (normalized.length <= maxLength) return normalized;
+    return `${normalized.slice(0, maxLength - 1)}...`;
+  }
+
+  private flattenTextValue(value: unknown): string {
+    if (typeof value === "string") return value;
+    if (Array.isArray(value)) {
+      return value.map((entry) => this.flattenTextValue(entry)).filter(Boolean).join("\n");
+    }
+    if (value && typeof value === "object") {
+      const obj = value as Record<string, unknown>;
+      return this.readString(obj.text) ?? this.readString(obj.message) ?? this.flattenTextValue(obj.content);
+    }
+    return "";
+  }
+
+  private toSessionInfo(session: CodexSession): SessionInfo {
+    return {
+      id: session.id,
+      title: session.title,
+      time: {
+        created: session.createdAt,
+        updated: session.updatedAt,
+      },
+    };
+  }
+
+  private extractThreadObject(payload: unknown): Record<string, unknown> {
+    const obj = this.asRecord(payload);
+    const nested = this.asRecord(obj.thread);
+    return Object.keys(nested).length > 0 ? nested : obj;
+  }
+
+  private extractThreadTitleFromUnknown(payload: unknown): string | undefined {
+    return this.extractThreadTitle(this.extractThreadObject(payload));
+  }
+
+  private extractThreadTitle(payload: Record<string, unknown>): string | undefined {
+    const thread = this.asRecord(payload.thread);
+    const explicitName = this.readString(thread.name) ?? this.readString(payload.name);
+    if (explicitName) return explicitName;
+
+    const explicitTitle = this.readString(thread.title) ?? this.readString(payload.title);
+    if (explicitTitle) return explicitTitle;
+
+    const preview = this.readString(thread.preview) ?? this.readString(payload.preview);
+    if (!preview) return undefined;
+    return preview.charAt(0).toUpperCase() + preview.slice(1);
+  }
+
+  private extractTurnId(payload: Record<string, unknown>): string | undefined {
+    return (
+      this.readString(payload.turnId)
+      ?? this.readString(payload.turn_id)
+      ?? this.readString(this.asRecord(payload.turn).id)
+      ?? this.readString(this.asRecord(payload.turn).turnId)
+      ?? this.readString(this.asRecord(payload.event).id)
+      ?? this.readString(this.asRecord(this.asRecord(payload.event).turn).id)
+      ?? ((payload.msg != null || payload.event != null) ? this.readString(payload.id) : undefined)
+    );
+  }
+
+  private extractItemId(payload: Record<string, unknown>): string | undefined {
+    return (
+      this.readString(payload.itemId)
+      ?? this.readString(payload.item_id)
+      ?? this.readString(payload.call_id)
+      ?? this.readString(payload.callId)
+      ?? this.readString(payload.id)
+      ?? this.readString(payload.messageId)
+      ?? this.readString(payload.message_id)
+      ?? this.readString(this.asRecord(payload.item).id)
+      ?? this.readString(this.asRecord(payload.item).itemId)
+      ?? this.readString(this.asRecord(payload.item).call_id)
+      ?? this.readString(this.asRecord(payload.item).callId)
+      ?? this.readString(this.asRecord(payload.item).messageId)
+      ?? this.readString(this.asRecord(payload.event).itemId)
+      ?? this.readString(this.asRecord(payload.event).item_id)
+      ?? this.readString(this.asRecord(payload.event).call_id)
+      ?? this.readString(this.asRecord(payload.event).callId)
+      ?? this.readString(this.asRecord(payload.event).id)
+      ?? this.readString(this.asRecord(this.asRecord(payload.event).item).id)
+    );
+  }
+
+  private extractTextPayload(payload: Record<string, unknown>): string | undefined {
+    return (
+      this.readRawString(payload.delta)
+      ?? this.readRawString(payload.text)
+      ?? this.readRawString(payload.message)
+      ?? this.readRawString(this.asRecord(payload.item).text)
+      ?? this.readRawString(this.asRecord(payload.item).delta)
+      ?? this.readRawString(this.asRecord(payload.item).message)
+      ?? this.readRawString(this.asRecord(payload.event).text)
+      ?? this.readRawString(this.asRecord(payload.event).delta)
+      ?? this.readRawString(this.asRecord(payload.event).message)
+    );
+  }
+
+  private extractStructuredUserInputQuestions(payload: Record<string, unknown>): Array<Record<string, unknown>> {
+    const rawQuestions = this.readArray(payload.questions);
+    const questions: Array<Record<string, unknown>> = [];
+    for (const value of rawQuestions) {
+      const question = this.asRecord(value);
+      const options = this.readArray(question.options)
+        .map((option) => {
+          const optionObject = this.asRecord(option);
+          const label = this.readString(optionObject.label);
+          const description = this.readString(optionObject.description);
+          if (!label) return undefined;
+          return {
+            label,
+            ...(description ? { description } : {}),
+          };
+        })
+        .filter((value): value is { label: string; description?: string } => Boolean(value));
+
+      const id = this.readString(question.id);
+      const header = this.readString(question.header);
+      const prompt = this.readString(question.question);
+      if (!id || !header || !prompt) {
+        continue;
+      }
+
+      questions.push({
+        id,
+        header,
+        question: prompt,
+        ...(options.length > 0 ? { options } : {}),
+        ...(typeof question.isOther === "boolean" ? { isOther: question.isOther } : {}),
+        ...(typeof question.isSecret === "boolean" ? { isSecret: question.isSecret } : {}),
+      });
+    }
+    return questions;
+  }
+
+  private extractThreadId(payload: unknown): string | undefined {
+    if (!payload || typeof payload !== "object") return undefined;
+    const obj = payload as Record<string, unknown>;
+    const direct = this.readString(obj.threadId) ?? this.readString(obj.thread_id) ?? this.readString(obj.id);
+    if (direct) return direct;
+
+    const thread = this.asRecord(obj.thread);
+    return this.readString(thread.id) ?? this.readString(thread.threadId) ?? this.readString(thread.thread_id);
+  }
+
+  private extractThreadCwd(payload: unknown): string | undefined {
+    const obj = this.extractThreadObject(payload);
+    const cwd = this.firstString(obj, [
+      "cwd",
+      "projectPath",
+      "project_path",
+      "gitWorkingDirectory",
+      "git_working_directory",
+      "workingDirectory",
+      "working_directory",
+    ]);
+    return cwd ? this.normalizeDirectoryPath(cwd) : undefined;
+  }
+
+  private extractCreatedAt(payload: unknown): number | undefined {
+    const obj = this.extractThreadObject(payload);
+    return this.readTimestamp(obj.createdAt) ?? this.readTimestamp(obj.created_at);
+  }
+
+  private extractUpdatedAt(payload: unknown): number | undefined {
+    const obj = this.extractThreadObject(payload);
+    return this.readTimestamp(obj.updatedAt)
+      ?? this.readTimestamp(obj.updated_at)
+      ?? this.readTimestamp(obj.time);
+  }
+
+  private readTimestamp(value: unknown): number | undefined {
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value > 10_000_000_000 ? value : value * 1000;
+    }
+    if (typeof value === "string" && value.trim()) {
+      const asNumber = Number(value);
+      if (Number.isFinite(asNumber)) {
+        return asNumber > 10_000_000_000 ? asNumber : asNumber * 1000;
+      }
+      const parsed = Date.parse(value);
+      return Number.isNaN(parsed) ? undefined : parsed;
+    }
+    if (value && typeof value === "object") {
+      const obj = value as Record<string, unknown>;
+      return this.readTimestamp(obj.updated) ?? this.readTimestamp(obj.created) ?? this.readTimestamp(obj.start) ?? this.readTimestamp(obj.end);
+    }
+    return undefined;
+  }
+
+  private firstString(obj: Record<string, unknown>, keys: string[]): string | undefined {
+    for (const key of keys) {
+      const value = this.readString(obj[key]);
+      if (value) return value;
+    }
+    return undefined;
+  }
+
+  private firstStringFromSources(sources: Record<string, unknown>[], keys: string[]): string | undefined {
+    for (const source of sources) {
+      const value = this.firstString(source, keys);
+      if (value) return value;
+    }
+    return undefined;
+  }
+
+  private readArray(value: unknown): unknown[] {
+    return Array.isArray(value) ? value : [];
+  }
+
+  private readRawString(value: unknown): string | undefined {
+    return typeof value === "string" ? value : undefined;
+  }
+
+  private readString(value: unknown): string | undefined {
+    return typeof value === "string" && value.trim() ? value.trim() : undefined;
+  }
+
+  private asRecord(value: unknown): Record<string, unknown> {
+    return value && typeof value === "object" ? value as Record<string, unknown> : {};
+  }
+
+  private normalizedItemType(rawType: string): string {
+    return rawType.replace(/[_-]/g, "").toLowerCase();
+  }
+
+  private isUserRole(itemObject: Record<string, unknown>): boolean {
+    return (this.readString(itemObject.role) ?? "").toLowerCase().includes("user");
+  }
+
+  private isAssistantMessageItem(itemType: string, role?: string): boolean {
+    const normalizedRole = (role ?? "").toLowerCase();
+    return itemType === "agentmessage"
+      || itemType === "assistantmessage"
+      || itemType === "exitedreviewmode"
+      || (itemType === "message" && !normalizedRole.includes("user"));
+  }
+
+  private extractIncomingItem(params: Record<string, unknown>): Record<string, unknown> {
+    const direct = this.asRecord(params.item);
+    if (Object.keys(direct).length > 0) return direct;
+    const eventItem = this.asRecord(this.asRecord(params.event).item);
+    if (Object.keys(eventItem).length > 0) return eventItem;
+    return this.asRecord(params.event);
+  }
+
+  private describeToolPart(
+    normalizedType: string,
+    method: string,
+    item: Record<string, unknown>,
+  ): string {
+    if (normalizedType === "commandexecution") {
+      return "command";
+    }
+    if (normalizedType === "filechange" || normalizedType === "diff") {
+      return "file-change";
+    }
+    if (normalizedType === "plan") {
+      return "plan";
+    }
+    if (normalizedType === "enteredreviewmode") {
+      return "review";
+    }
+    if (normalizedType === "contextcompaction") {
+      return "context";
+    }
+    return this.readString(item.name) ?? method.replace(/^.*\//, "");
+  }
+
+  private normalizeStructuredType(rawType: string): string {
+    const normalized = this.normalizedItemType(rawType);
+    if (normalized.includes("turndiff") || normalized === "diff") return "diff";
+    if (normalized.includes("filechange")) return "filechange";
+    if (normalized.includes("toolcall")) return "toolcall";
+    if (normalized.includes("commandexecution")) return "commandexecution";
+    return normalized;
+  }
+
+  private isFileChangeStructuredItem(
+    normalizedType: string,
+    item: Record<string, unknown>,
+    params?: Record<string, unknown>,
+  ): boolean {
+    if (normalizedType === "filechange" || normalizedType === "diff") {
+      return true;
+    }
+    if (normalizedType !== "toolcall") {
+      return false;
+    }
+
+    const event = this.asRecord(params?.event);
+    const nestedItem = this.asRecord(event.item);
+    const sources = [item, params ?? {}, event, nestedItem];
+
+    for (const source of sources) {
+      if (this.firstString(source, ["diff", "unified_diff", "unifiedDiff", "patch"])) {
+        return true;
+      }
+      if (this.readArray(source.changes).length > 0) {
+        return true;
+      }
+    }
+
+    const toolName = this.firstString(item, ["name", "toolName", "tool_name", "title"])?.toLowerCase() ?? "";
+    return toolName.includes("patch") || toolName.includes("edit") || toolName.includes("write");
+  }
+
+  private extractStructuredOutput(
+    params: Record<string, unknown>,
+    item: Record<string, unknown>,
+    normalizedType: string,
+  ): string | undefined {
+    if (normalizedType === "filechange" || normalizedType === "toolcall" || normalizedType === "diff") {
+      return this.extractDiffLikePayload(params, item, normalizedType) ?? this.extractTextPayload(params);
+    }
+
+    return this.extractTextPayload(params);
+  }
+
+  private extractDiffLikePayload(
+    params: Record<string, unknown>,
+    item: Record<string, unknown>,
+    normalizedType?: string,
+  ): string | undefined {
+    const event = this.asRecord(params.event);
+    const nestedItem = this.asRecord(event.item);
+    const sources = [params, item, event, nestedItem];
+    const status = this.normalizedFileChangeStatus(item, false);
+
+    const changesBody = this.renderFileChangeEntriesBody(item.changes ?? params.changes ?? event.changes ?? nestedItem.changes);
+    if (changesBody) {
+      return `Status: ${status}\n\n${changesBody}`;
+    }
+
+    for (const source of sources) {
+      const diff = this.firstString(source, ["diff", "unified_diff", "unifiedDiff", "patch"]);
+      if (diff) {
+        return this.renderUnifiedDiffBody(diff, status);
+      }
+    }
+
+    for (const source of sources) {
+      const direct = this.firstString(source, ["text", "message", "summary", "output", "output_text", "outputText"]);
+      if (direct) {
+        if (normalizedType === "toolcall" && !this.isFileChangeStructuredItem("toolcall", item, params)) {
+          return direct;
+        }
+        return `Status: ${status}\n\n${direct}`;
+      }
+    }
+
+    return undefined;
+  }
+
+  private renderFileChangeEntriesBody(rawChanges: unknown): string | undefined {
+    const changes = this.readArray(rawChanges);
+    if (changes.length === 0) return undefined;
+
+    const rendered = changes
+      .map((change) => {
+        const obj = this.asRecord(change);
+        const path = this.firstString(obj, [
+          "path",
+          "file",
+          "file_path",
+          "filePath",
+          "relative_path",
+          "relativePath",
+          "new_path",
+          "newPath",
+          "to",
+          "target",
+          "name",
+          "old_path",
+          "oldPath",
+          "from",
+        ]);
+        const normalizedPath = this.normalizeDisplayPath(path) ?? "file";
+        const kind = this.firstString(obj, ["kind", "type", "action", "status"]) ?? "change";
+        const diff = this.firstString(obj, ["diff", "unified_diff", "unifiedDiff", "patch"]) ?? "";
+        return diff
+          ? `Path: ${normalizedPath}\nKind: ${kind}\n\n\`\`\`diff\n${diff}\n\`\`\``
+          : `Path: ${normalizedPath}\nKind: ${kind}`;
+      })
+      .filter(Boolean);
+
+    return rendered.length > 0 ? rendered.join("\n\n---\n\n") : undefined;
+  }
+
+  private renderUnifiedDiffBody(diff: string, status: string): string {
+    return `Status: ${status}\n\n\`\`\`diff\n${diff.trim()}\n\`\`\``;
+  }
+
+  private extractCanonicalPatch(
+    params: Record<string, unknown>,
+    item: Record<string, unknown>,
+  ): string | undefined {
+    const event = this.asRecord(params.event);
+    const nestedItem = this.asRecord(event.item);
+    const sources = [item, params, event, nestedItem];
+
+    for (const source of sources) {
+      const diff = this.firstString(source, ["diff", "unified_diff", "unifiedDiff", "patch"]);
+      if (diff?.trim()) {
+        return diff.trim();
+      }
+    }
+
+    const changes = this.readArray(item.changes ?? params.changes ?? event.changes ?? nestedItem.changes);
+    if (changes.length === 0) return undefined;
+
+    const patch = changes
+      .map((change) => {
+        const obj = this.asRecord(change);
+        return this.firstString(obj, ["diff", "unified_diff", "unifiedDiff", "patch"]) ?? "";
+      })
+      .filter((value) => value.trim().length > 0)
+      .join("\n");
+
+    return patch.trim() || undefined;
+  }
+
+  private normalizeDisplayPath(rawPath: string | undefined): string | undefined {
+    if (!rawPath) return undefined;
+    const trimmed = rawPath.trim();
+    if (!trimmed) return undefined;
+    if (!path.isAbsolute(trimmed)) return trimmed;
+
+    const relative = path.relative(process.cwd(), trimmed);
+    if (!relative || relative.startsWith("..")) {
+      return trimmed;
+    }
+    return relative;
+  }
+
+  private normalizeDirectoryPath(rawPath: string | undefined): string | undefined {
+    if (!rawPath) return undefined;
+    const trimmed = rawPath.trim();
+    if (!trimmed) return undefined;
+    return path.resolve(trimmed);
+  }
+
+  private belongsToCurrentRoot(session: CodexSession): boolean {
+    const sessionCwd = this.normalizeDirectoryPath(session.cwd);
+    const currentRoot = this.normalizeDirectoryPath(process.cwd());
+    if (!sessionCwd || !currentRoot) {
+      return false;
+    }
+    return sessionCwd === currentRoot;
+  }
+
+  private normalizedFileChangeStatus(itemObject: Record<string, unknown>, isCompleted: boolean): string {
+    const status = this.readString(itemObject.status)
+      ?? this.readString(this.asRecord(itemObject.status).type)
+      ?? this.readString(itemObject.state)
+      ?? this.readString(this.asRecord(itemObject.state).type);
+    if (status) return status;
+    return isCompleted ? "completed" : "inProgress";
+  }
+
+  private extractToolInput(item: Record<string, unknown>, params: Record<string, unknown>): unknown {
+    const normalizedType = this.normalizeStructuredType(this.readString(item.type) ?? "");
+    if (normalizedType === "commandexecution") {
+      return this.extractCommandExecutionInput(item, params);
+    }
+    return item.input ?? item.command ?? item.path ?? item.args ?? params.command ?? params.path ?? undefined;
+  }
+
+  private extractCommandExecutionInput(
+    item: Record<string, unknown>,
+    params?: Record<string, unknown>,
+  ): unknown {
+    const event = this.asRecord(params?.event);
+    const nestedItem = this.asRecord(event.item);
+    const sources = [item, params ?? {}, event, nestedItem];
+
+    const command = this.firstStringFromSources(sources, [
+      "command",
+      "cmd",
+      "raw_command",
+      "rawCommand",
+      "invocation",
+      "input",
+      "fullCommand",
+      "full_command",
+    ]);
+    const cwd = this.firstStringFromSources(sources, [
+      "cwd",
+      "workdir",
+      "workingDirectory",
+      "working_directory",
+    ]);
+
+    if (command && cwd) return { command, cwd };
+    if (command) return { command };
+    if (cwd) return { cwd };
+    return undefined;
+  }
+
+  private describeCompletedItemOutput(
+    item: Record<string, unknown>,
+    params: Record<string, unknown>,
+    normalizedType: string,
+  ): string | undefined {
+    if (normalizedType === "commandexecution") {
+      return this.firstString(item, ["stdout", "stderr", "text", "message", "summary"]);
+    }
+    if (normalizedType === "plan") {
+      return this.decodePlanItemText(item);
+    }
+    if (normalizedType === "filechange" || normalizedType === "toolcall" || normalizedType === "diff") {
+      return this.extractDiffLikePayload(params, item, normalizedType) ?? this.decodeFileLikeItemText(item);
+    }
+    if (normalizedType === "enteredreviewmode") {
+      return `Reviewing ${this.readString(item.review) ?? "changes"}...`;
+    }
+    if (normalizedType === "contextcompaction") {
+      return "Context compacted";
+    }
+    return this.firstString(item, ["text", "message", "summary", "output", "output_text", "outputText"]);
+  }
+}

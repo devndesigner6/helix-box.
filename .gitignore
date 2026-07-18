@@ -1,0 +1,16 @@
+.DS_Store
+pty/target/
+gateway/manager.db
+gateway/manager.db-shm
+gateway/manager.db-wal
+manager/bun.lock
+manager/manager.db
+manager/manager.db-shm
+manager/manager.db-wal
+
+node_modules/
+dist/
+.env
+*.log
+.expo/
+*.exe

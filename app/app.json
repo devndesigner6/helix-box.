@@ -1,0 +1,91 @@
+{
+  "expo": {
+    "name": "helixbox",
+    "slug": "helixbox",
+    "version": "1.0.7",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "helixbox",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "xyz.helixbox.app",
+      "buildNumber": "2",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "This app uses the camera to scan a QR code to securely connect the app to your development environment or codebase. You can also manually enter the code if you prefer not to use the camera.",
+        "NSMicrophoneUsageDescription": "This app uses the microphone so you can dictate commands in the terminal and speak to the AI assistant. Voice is sent to Helixbox servers for transcription only — we do not store or retain audio recordings.",
+        "NSPhotoLibraryUsageDescription": "This app uses your photo library so you can attach images to AI chats."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "RECORD_AUDIO"
+      ],
+      "package": "xyz.helixbox.app",
+      "versionCode": 2
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/icon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "This app uses the camera to scan a QR code to securely connect the app to your development environment or codebase. You can also manually enter the code if you prefer not to use the camera."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "This app uses your photo library so you can attach images to AI chats."
+        }
+      ],
+      [
+        "react-native-libsodium",
+        {}
+      ],
+      "expo-document-picker",
+      [
+        "@hot-updater/react-native",
+        {
+          "channel": "production"
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff",
+          "dark": {
+            "backgroundColor": "#000000"
+          }
+        }
+      ],
+      "expo-asset",
+      "expo-localization"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "router": {
+        "unstable_settings": {
+          "initialRouteName": "index"
+        }
+      }
+    }
+  }
+}
