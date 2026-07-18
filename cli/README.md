@@ -1,30 +1,30 @@
-# Lunel CLI
+# Helix Box CLI
 
-Node.js CLI that connects a local machine to the Lunel mobile app through the Lunel gateway. It runs from the project directory you want to expose and keeps filesystem, terminal, process, port, git, and AI actions scoped to that working tree.
+Node.js CLI that connects a local machine to the Helix Box mobile app through the Helix Box gateway. It runs from the project directory you want to expose and keeps filesystem, terminal, process, port, git, and AI actions scoped to that working tree.
 
 ## Requirements
 
 - Node.js 18 or newer
 - npm
-- Lunel mobile app for QR/session pairing
+- Helix Box mobile app for QR/session pairing
 
 ## Usage
 
 Run the published package:
 
 ```bash
-npx lunel-cli
+npx helixbox-cli
 ```
 
-The CLI prints a QR code and session details. Scan the QR code with the Lunel app to connect to the current working directory.
+The CLI prints a QR code and session details. Scan the QR code with the Helix Box app to connect to the current working directory.
 
 Common options:
 
 ```bash
-npx lunel-cli --help
-npx lunel-cli --new
-npx lunel-cli --debug
-npx lunel-cli --extra-ports 3000,8080
+npx helixbox-cli --help
+npx helixbox-cli --new
+npx helixbox-cli --debug
+npx helixbox-cli --extra-ports 3000,8080
 ```
 
 Options:
@@ -34,39 +34,39 @@ Options:
 | `-h`, `--help` | Show CLI help |
 | `-n`, `--new` | Create a fresh session code instead of reusing the saved one |
 | `-d`, `--debug` | Enable verbose CLI and AI backend logs |
-| `--extra-ports` | Comma-separated local ports to expose through Lunel |
+| `--extra-ports` | Comma-separated local ports to expose through Helix Box |
 
 ## Configuration
 
-By default, the CLI uses the public Lunel services:
+By default, the CLI uses the public Helix Box services:
 
-- Gateway: `https://gateway.lunel.dev`
-- Manager: `https://manager.lunel.dev`
+- Gateway: `https://helixbox-proxy.onrender.com`
+- Manager: `https://helixbox-manager.onrender.com`
 
 Override them with environment variables when developing against local or custom infrastructure:
 
 ```bash
-LUNEL_PROXY_URL=http://localhost:3001 \
-LUNEL_MANAGER_URL=http://localhost:3002 \
-npx lunel-cli
+HELIXBOX_PROXY_URL=http://localhost:3001 \
+HELIXBOX_MANAGER_URL=http://localhost:3002 \
+npx helixbox-cli
 ```
 
 Other useful environment variables:
 
 | Variable | Description |
 | --- | --- |
-| `LUNEL_PROXY_URL` | Gateway/proxy URL |
-| `LUNEL_MANAGER_URL` | Manager URL |
-| `LUNEL_DEBUG` | Set to `1` for debug logging |
-| `LUNEL_DEBUG_AI` | Set to `1` for AI backend debug logging |
+| `HELIXBOX_PROXY_URL` | Gateway/proxy URL |
+| `HELIXBOX_MANAGER_URL` | Manager URL |
+| `HELIXBOX_DEBUG` | Set to `1` for debug logging |
+| `HELIXBOX_DEBUG_AI` | Set to `1` for AI backend debug logging |
 | `NO_COLOR` | Disable colored terminal output |
 | `FORCE_COLOR` | Force colored terminal output |
 
-Session config is saved per project root in the OS-specific Lunel config directory:
+Session config is saved per project root in the OS-specific Helix Box config directory:
 
-- macOS: `~/Library/Application Support/lunel/config.json`
-- Windows: `%APPDATA%\lunel\config.json`
-- Linux: `$XDG_CONFIG_HOME/lunel/config.json` or `~/.config/lunel/config.json`
+- macOS: `~/Library/Application Support/helixbox/config.json`
+- Windows: `%APPDATA%\helixbox\config.json`
+- Linux: `$XDG_CONFIG_HOME/helixbox/config.json` or `~/.config/helixbox/config.json`
 
 ## Development
 
@@ -102,7 +102,7 @@ src/
 
 ## Publishing
 
-The package is published as `lunel-cli`. `prepublishOnly` runs the production build before publishing.
+The package is published as `helixbox-cli`. `prepublishOnly` runs the production build before publishing.
 
 ```bash
 npm publish
