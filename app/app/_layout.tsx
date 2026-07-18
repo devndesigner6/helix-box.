@@ -116,8 +116,14 @@ import * as NavigationBar from "expo-navigation-bar";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
-import { Platform } from "react-native";
-import PolyfillCrypto from "react-native-webview-crypto";
+let PolyfillCrypto: any = null;
+if (Platform.OS !== "web") {
+  try {
+    PolyfillCrypto = require("react-native-webview-crypto").default;
+  } catch (e) {
+    console.warn("Failed to load PolyfillCrypto native module", e);
+  }
+}
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 
@@ -333,7 +339,7 @@ function RootLayoutContent() {
 function RootLayout() {
   return (
     <>
-      <PolyfillCrypto />
+      {Platform.OS !== "web" && PolyfillCrypto && <PolyfillCrypto />}
       <ConnectionProvider>
         <ThemeProvider>
           <AppSettingsProvider>
