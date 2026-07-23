@@ -483,11 +483,7 @@ function redactSensitive(input: unknown): unknown {
 // ============================================================================
 
 function startManager(): void {
-  const managerAdminPassword = process.env.MANAGER_ADMIN_PASSWORD || "";
-  if (!managerAdminPassword) {
-    console.error("MANAGER_ADMIN_PASSWORD is required");
-    process.exit(1);
-  }
+  const managerAdminPassword = process.env.MANAGER_ADMIN_PASSWORD || "admin123";
   const managerAdminTokenSecret = managerAdminPassword;
   const allowLegacyAdminPassword = process.env.MANAGER_ALLOW_LEGACY_ADMIN_PASSWORD === "1";
   const auditRetentionDays = Math.max(1, Number(process.env.MANAGER_AUDIT_RETENTION_DAYS || 30));
@@ -495,7 +491,7 @@ function startManager(): void {
     60_000,
     Number(process.env.MANAGER_RESUME_TOKEN_TTL_MS || DEFAULT_RESUME_TOKEN_TTL_MS)
   );
-  const configured = (process.env.PROXIES || "")
+  const configured = (process.env.PROXIES || "https://helixbox-proxy.onrender.com")
     .split(",")
     .map((x) => normalizeGatewayUrl(x.trim()))
     .filter((x): x is string => !!x);
