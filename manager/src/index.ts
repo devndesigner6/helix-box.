@@ -483,7 +483,7 @@ function redactSensitive(input: unknown): unknown {
 // ============================================================================
 
 function startManager(): void {
-  const managerAdminPassword = process.env.MANAGER_ADMIN_PASSWORD || "admin123";
+  const managerAdminPassword = process.env.MANAGER_ADMIN_PASSWORD || "qkaFPYWNEcwhVyZnOjCQHSoM7AmpDi6U";
   const managerAdminTokenSecret = managerAdminPassword;
   const allowLegacyAdminPassword = process.env.MANAGER_ALLOW_LEGACY_ADMIN_PASSWORD === "1";
   const auditRetentionDays = Math.max(1, Number(process.env.MANAGER_AUDIT_RETENTION_DAYS || 30));

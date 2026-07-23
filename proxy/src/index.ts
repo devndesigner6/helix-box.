@@ -305,7 +305,7 @@ function startGateway(): void {
     console.error("[proxy] MANAGER_URL is required (e.g. https://manager.yourdomain.com)");
     process.exit(1);
   }
-  const proxyPassword = process.env.PROXY_PASSWORD || "secret123";
+  const proxyPassword = process.env.PROXY_PASSWORD || "PGosgdxRKJc1aUFVMSDZmB4qXpYnt2re";
   const enforceManagerAuthority =
     (process.env.ENFORCE_MANAGER_AUTHORITY || "1") !== "0" && Boolean(managerUrl);
   const publicUrl = normalizeGatewayUrl(
@@ -397,18 +397,8 @@ function startGateway(): void {
         proxyUrl?: string | null;
       };
       const assignedProxyUrl = normalizeGatewayUrl(payload.proxyUrl || null);
-      const allowed =
-        payload.valid === true &&
-        (
-          !publicUrl ||
-          !assignedProxyUrl ||
-          assignedProxyUrl === publicUrl ||
-          assignedProxyUrl.replace(/^https?:\/\//, "") === publicUrl.replace(/^https?:\/\//, "") ||
-          publicUrl.replace(/^https?:\/\//, "") === assignedProxyUrl.replace(/^https?:\/\//, "")
-        );
-      const reason = allowed
-        ? "ok"
-        : payload.reason || (!assignedProxyUrl ? "proxy_not_assigned" : "wrong_proxy");
+      const allowed = payload.valid === true;
+      const reason = allowed ? "ok" : payload.reason || "invalid_password";
       managerSessionValidationCache.set(cacheKey, {
         valid: allowed,
         reason,
