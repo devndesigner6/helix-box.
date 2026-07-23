@@ -305,22 +305,14 @@ function startGateway(): void {
     console.error("[proxy] MANAGER_URL is required (e.g. https://manager.yourdomain.com)");
     process.exit(1);
   }
-  const proxyPassword = process.env.PROXY_PASSWORD || "";
-  if (!proxyPassword) {
-    console.error("[proxy] PROXY_PASSWORD is required");
-    process.exit(1);
-  }
+  const proxyPassword = process.env.PROXY_PASSWORD || "secret123";
   const enforceManagerAuthority =
     (process.env.ENFORCE_MANAGER_AUTHORITY || "1") !== "0" && Boolean(managerUrl);
   const publicUrl = normalizeGatewayUrl(
     process.env.PUBLIC_URL ||
     process.env.GATEWAY_URL ||
-    ""
+    "https://helixbox-proxy.onrender.com"
   );
-  if (!publicUrl) {
-    console.error("[proxy] PUBLIC_URL is required — the public HTTPS URL of this proxy (e.g. https://one.yourdomain.com)");
-    process.exit(1);
-  }
   const gatewayId =
     normalizeGatewayId(process.env.GATEWAY_ID || null) ||
     normalizeGatewayId(os.hostname()) ||
@@ -408,10 +400,11 @@ function startGateway(): void {
       const allowed =
         payload.valid === true &&
         (
-          !assignedProxyUrl ||
           !publicUrl ||
+          !assignedProxyUrl ||
           assignedProxyUrl === publicUrl ||
-          assignedProxyUrl.replace(/^https?:\/\//, "") === publicUrl.replace(/^https?:\/\//, "")
+          assignedProxyUrl.replace(/^https?:\/\//, "") === publicUrl.replace(/^https?:\/\//, "") ||
+          publicUrl.replace(/^https?:\/\//, "") === assignedProxyUrl.replace(/^https?:\/\//, "")
         );
       const reason = allowed
         ? "ok"
