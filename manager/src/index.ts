@@ -3192,7 +3192,8 @@ function startManager(): void {
             code: record.code,
           }, { headers: corsHeaders });
         }
-        return Response.json({ valid: true, proxyUrl: record.proxyUrl, code: record.code }, { headers: corsHeaders });
+        const fallbackProxy = record.proxyUrl || process.env.PROXIES || process.env.PROXY_URL || "https://helixbox-proxy.onrender.com";
+        return Response.json({ valid: true, proxyUrl: fallbackProxy, code: record.code }, { headers: corsHeaders });
       }
 
       if (path === "/health") {

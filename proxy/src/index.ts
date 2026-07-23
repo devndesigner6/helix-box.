@@ -408,8 +408,8 @@ function startGateway(): void {
       const allowed =
         payload.valid === true &&
         (
-          !publicUrl ||
           !assignedProxyUrl ||
+          !publicUrl ||
           assignedProxyUrl === publicUrl ||
           assignedProxyUrl.replace(/^https?:\/\//, "") === publicUrl.replace(/^https?:\/\//, "")
         );
