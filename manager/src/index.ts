@@ -3159,41 +3159,12 @@ function startManager(): void {
         if (role && role !== "app" && role !== "cli") {
           return Response.json({ valid: false, reason: "invalid_role" }, { status: 400, headers: corsHeaders });
         }
-        const record = issuedPasswordsByHash.get(hashPassword(password));
-        if (!record || record.expiresAt <= Date.now()) {
+        const row = getSessionByTokenStmt.get(password) as any;
+        if (!row) {
           return Response.json({ valid: false, reason: "invalid_password" }, { headers: corsHeaders });
         }
-        const reattach = getReattachSession(password);
-        if (reattach) {
-          if (role === "app" || role === "cli") {
-            if (!Number.isFinite(generation) || generation < 1) {
-              return Response.json({
-                valid: false,
-                reason: "reattach_generation_required",
-                proxyUrl: reattach.proxyUrl,
-                generation: reattach.generation,
-                code: record.code,
-              }, { headers: corsHeaders });
-            }
-            if (generation !== Number(reattach.generation || 0)) {
-              return Response.json({
-                valid: false,
-                reason: "stale_generation",
-                proxyUrl: reattach.proxyUrl,
-                generation: reattach.generation,
-                code: record.code,
-              }, { headers: corsHeaders });
-            }
-          }
-          return Response.json({
-            valid: true,
-            proxyUrl: reattach.proxyUrl,
-            generation: reattach.generation,
-            code: record.code,
-          }, { headers: corsHeaders });
-        }
-        const fallbackProxy = record.proxyUrl || process.env.PROXIES || process.env.PROXY_URL || "https://helixbox-proxy.onrender.com";
-        return Response.json({ valid: true, proxyUrl: fallbackProxy, code: record.code }, { headers: corsHeaders });
+        const fallbackProxy = row.primaryGateway || process.env.PROXIES || process.env.PROXY_URL || "https://helixbox-proxy.onrender.com";
+        return Response.json({ valid: true, proxyUrl: fallbackProxy, code: row.code }, { headers: corsHeaders });
       }
 
       if (path === "/health") {
