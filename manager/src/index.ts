@@ -3927,7 +3927,7 @@ function startManager(): void {
               }
               try {
                 const healthRes = await fetch(`${normalized}/health`, {
-                  signal: AbortSignal.timeout(5000),
+                  signal: AbortSignal.timeout(15000),
                 });
                 if (!healthRes.ok) {
                   return Response.json({ error: "proxy health check failed — is the URL correct?" }, { status: 400, headers: corsHeaders });
@@ -3942,7 +3942,7 @@ function startManager(): void {
               try {
                 const pingRes = await fetch(`${normalized}/v1/ping`, {
                   headers: { "X-Proxy-Password": proxyPassword },
-                  signal: AbortSignal.timeout(5000),
+                  signal: AbortSignal.timeout(15000),
                 });
                 if (pingRes.status === 401) {
                   return Response.json({ error: "wrong proxy password" }, { status: 400, headers: corsHeaders });

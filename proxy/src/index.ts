@@ -407,11 +407,15 @@ function startGateway(): void {
       const assignedProxyUrl = normalizeGatewayUrl(payload.proxyUrl || null);
       const allowed =
         payload.valid === true &&
-        Boolean(assignedProxyUrl) &&
-        assignedProxyUrl === publicUrl;
+        (
+          !publicUrl ||
+          !assignedProxyUrl ||
+          assignedProxyUrl === publicUrl ||
+          assignedProxyUrl.replace(/^https?:\/\//, "") === publicUrl.replace(/^https?:\/\//, "")
+        );
       const reason = allowed
         ? "ok"
-        : payload.reason || (!assignedProxyUrl ? "proxy_not_assigned" : assignedProxyUrl !== publicUrl ? "wrong_proxy" : "invalid_password");
+        : payload.reason || (!assignedProxyUrl ? "proxy_not_assigned" : "wrong_proxy");
       managerSessionValidationCache.set(cacheKey, {
         valid: allowed,
         reason,
