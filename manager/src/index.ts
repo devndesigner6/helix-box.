@@ -3155,12 +3155,18 @@ function startManager(): void {
         if (role && role !== "app" && role !== "cli") {
           return Response.json({ valid: false, reason: "invalid_role" }, { status: 400, headers: corsHeaders });
         }
-        const row = getSessionByTokenStmt.get(password) as any;
-        if (!row) {
+        const passwordHash = hashPassword(password);
+        const record = issuedPasswordsByHash.get(passwordHash);
+        const v1Row = !record ? (getSessionByTokenStmt.get(password) as any) : null;
+        if (!record && !v1Row) {
           return Response.json({ valid: false, reason: "invalid_password" }, { headers: corsHeaders });
         }
-        const fallbackProxy = row.primaryGateway || process.env.PROXIES || process.env.PROXY_URL || "https://helixbox-proxy.onrender.com";
-        return Response.json({ valid: true, proxyUrl: fallbackProxy, code: row.code }, { headers: corsHeaders });
+        if (record && record.expiresAt <= Date.now()) {
+          return Response.json({ valid: false, reason: "invalid_password" }, { headers: corsHeaders });
+        }
+        const assignedProxy = record?.proxyUrl || v1Row?.primary_gateway || process.env.PROXIES || process.env.PROXY_URL || "https://helixbox-proxy.onrender.com";
+        const code = record?.code || v1Row?.code || "";
+        return Response.json({ valid: true, proxyUrl: assignedProxy, code }, { headers: corsHeaders });
       }
 
       if (path === "/health") {
