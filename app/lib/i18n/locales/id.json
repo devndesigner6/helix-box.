@@ -25,9 +25,9 @@
     "openNewTerminal": "Buka terminal baru"
   },
   "onboarding": {
-    "welcome": "Selamat datang di Lunel",
+    "welcome": "Selamat datang di Helix Box",
     "shipFromAnywhere": "Kirim dari mana saja.",
-    "description": "lunel membawa seluruh lingkungan pengembangan ke saku Anda",
+    "description": "helixbox membawa seluruh lingkungan pengembangan ke saku Anda",
     "endToEndEncryption": "Enkripsi ujung ke ujung",
     "free": "Gratis",
     "openSource": "Sumber terbuka",
@@ -40,7 +40,7 @@
     "endToEndEncryptedLabel": "Enkripsi ujung ke ujung",
     "codeNeverTouches": "Kode Anda tidak pernah menyentuh server kami",
     "foreverFree": "Gratis selamanya",
-    "lunelConnect": "Lunel Connect tidak pernah berbayar",
+    "lunelConnect": "Helix Box Connect tidak pernah berbayar",
     "worksAnyStack": "Bekerja dengan stack apa pun",
     "nextJsNode": "Next.js, Node, React Native dan lainnya",
     "whatPeopleSay": "Apa yang dikatakan orang",
@@ -50,7 +50,7 @@
     "skip": "Lewati",
     "privacyFirst": "Privasi lebih utama",
     "securityInvisible": "Keamanan yang terasa tak terlihat",
-    "keepPrivate": "Lunel menjaga sesi Anda tetap pribadi secara default, sehingga Anda dapat terhubung dan mengirim tanpa pengaturan tambahan.",
+    "keepPrivate": "Helix Box menjaga sesi Anda tetap pribadi secara default, sehingga Anda dapat terhubung dan mengirim tanpa pengaturan tambahan.",
     "endToEndSessions": "Sesi terenkripsi ujung ke ujung",
     "encryptedBetween": "Dienkripsi antara perangkat dan mesin Anda.",
     "localPairing": "Pasangan lokal dengan QR",
@@ -85,15 +85,15 @@
     "review1Title": "Pengubah permainan untuk developer di jalan",
     "review1Text": "Push hotfix dari ponsel di kereta dan langsung berhasil. Terminal lengkap, shell nyata, semua ada. Tidak percaya ini gratis.",
     "review2Title": "Akhirnya IDE mobile yang nyata",
-    "review2Text": "Semua aplikasi lain yang saya coba terasa seperti mainan. Lunel benar-benar membuat saya bisa bekerja. Editornya solid, git sudah built-in, dan koneksi QR mulus.",
+    "review2Text": "Semua aplikasi lain yang saya coba terasa seperti mainan. Helix Box benar-benar membuat saya bisa bekerja. Editornya solid, git sudah built-in, dan koneksi QR mulus.",
     "review3Title": "Pengaturan harfiah 10 detik",
     "review3Text": "Pindai QR dari terminal dan langsung masuk ke repo. Terenkripsi ujung ke ujung juga yang membuat tenang. Sangat direkomendasikan.",
-    "leaveReviewPrompt": "Jika Lunel terlihat bagus untuk Anda, meninggalkan ulasan cepat membantu lebih banyak developer menemukannya"
+    "leaveReviewPrompt": "Jika Helix Box terlihat bagus untuk Anda, meninggalkan ulasan cepat membantu lebih banyak developer menemukannya"
   },
   "auth": {
-    "appName": "Lunel",
+    "appName": "Helix Box",
     "tagline": "Kirim dari mana saja",
-    "scanConnect": "Pindai dengan Lunel Connect",
+    "scanConnect": "Pindai dengan Helix Box Connect",
     "pastSessions": "Sesi sebelumnya",
     "legal": "Dengan melanjutkan, Anda menyetujui",
     "termsOfService": "Syarat Layanan",
@@ -120,7 +120,7 @@
   },
   "workspace": {
     "connectionLostTitle": "Koneksi terputus",
-    "connectionLostDesc": "Sesi Anda terputus. Jalankan npx lunel-cli lagi untuk terhubung kembali.",
+    "connectionLostDesc": "Sesi Anda terputus. Jalankan npx helixbox-cli lagi untuk terhubung kembali.",
     "sessionDisconnectedTitle": "Sesi terputus",
     "sessionDisconnectedDesc": "Koneksi ulang otomatis gagal. Pergi ke beranda dan hubungkan kembali ke sesi Anda.",
     "goHome": "Ke beranda",
@@ -195,7 +195,7 @@
     "title": "Aplikasi",
     "display": "TAMPILAN",
     "keepAwake": "Jaga aplikasi tetap aktif",
-    "preventAutoLock": "Cegah kunci otomatis saat Lunel terbuka"
+    "preventAutoLock": "Cegah kunci otomatis saat Helix Box terbuka"
   },
   "settingsEditor": {
     "title": "Editor",
@@ -276,7 +276,7 @@
     "submit": "Kirim",
     "loadingFiles": "Memuat file...",
     "notInstalledTitle": "{{backend}} tidak terinstal",
-    "notInstalledDesc": "PC Anda tidak memiliki {{backend}} yang terinstal. Instal secara manual atau jalankan npx lunel-cli lagi dan tekan y saat diminta untuk menginstal runtime AI yang hilang.",
+    "notInstalledDesc": "PC Anda tidak memiliki {{backend}} yang terinstal. Instal secara manual atau jalankan npx helixbox-cli lagi dan tekan y saat diminta untuk menginstal runtime AI yang hilang.",
     "aiError": "Kesalahan AI",
     "photosPermTitle": "Izin foto",
     "photosPermDesc": "Izin perpustakaan foto diperlukan untuk mengunggah gambar.",
@@ -301,9 +301,9 @@
     "defaultConversationTitle": "Percakapan",
     "anErrorOccurred": "Terjadi kesalahan",
     "failedRenameSession": "Gagal mengganti nama sesi",
-    "codexUndoNotSupported": "Undo Codex belum didukung di Lunel",
-    "codexRedoNotSupported": "Redo Codex belum didukung di Lunel",
-    "codexInitNotSupported": "Init Codex belum didukung di Lunel"
+    "codexUndoNotSupported": "Undo Codex belum didukung di Helix Box",
+    "codexRedoNotSupported": "Redo Codex belum didukung di Helix Box",
+    "codexInitNotSupported": "Init Codex belum didukung di Helix Box"
   },
   "settingsBrainrot": {
     "title": "Brainrot",
@@ -394,14 +394,14 @@
     "title": "Bantuan & Informasi",
     "gettingStarted": "MEMULAI",
     "question1": "Bagaimana cara terhubung ke sesi?",
-    "answer1": "Jalankan `npx lunel-cli` di mesin Anda, lalu pindai kode QR yang dihasilkan dari aplikasi.",
+    "answer1": "Jalankan `npx helixbox-cli` di mesin Anda, lalu pindai kode QR yang dihasilkan dari aplikasi.",
     "question2": "Bagaimana jika saya terputus?",
     "answer2": "Buka Beranda dan pindai kode QR baru dari sesi CLI baru untuk terhubung kembali.",
     "troubleshooting": "PEMECAHAN MASALAH",
     "question3": "Mengapa pemindai tidak berfungsi?",
     "answer3": "Aktifkan izin kamera di Pengaturan iOS dan pastikan kode QR terlihat sepenuhnya.",
     "question4": "Mengapa saya tidak dapat terhubung?",
-    "answer4": "Verifikasi mesin Anda online, jalankan ulang `npx lunel-cli`, dan pindai kode QR terbaru.",
+    "answer4": "Verifikasi mesin Anda online, jalankan ulang `npx helixbox-cli`, dan pindai kode QR terbaru.",
     "links": "TAUTAN",
     "terms": "Syarat",
     "policy": "Kebijakan",
@@ -433,7 +433,7 @@
     "howToConnectTitle": "Cara terhubung",
     "howToConnectSubtitle": "Jalankan satu perintah, pindai QR, selesai",
     "step1Title": "Buka terminal di PC Anda",
-    "step1Desc": "Navigasi ke repositori tempat Anda ingin Lunel bekerja",
+    "step1Desc": "Navigasi ke repositori tempat Anda ingin Helix Box bekerja",
     "step2Title": "Jalankan perintah",
     "step2Desc": "Pertama kali di repositori memberi Anda kode QR untuk terhubung. Jalankan lagi dan hanya melanjutkan sesi terakhir tanpa QR baru. Untuk terhubung kembali, ketuk sesi sebelumnya di aplikasi",
     "needFreshCode": "Perlu kode baru?",
@@ -446,7 +446,7 @@
     "errorConnectionFailed": "Koneksi gagal"
   },
   "notConnected": {
-    "appName": "lunel",
+    "appName": "helixbox",
     "tagline": "kirim dari mana saja"
   },
   "footer": {

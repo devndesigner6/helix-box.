@@ -92,6 +92,15 @@ Rust binary for pseudo-terminal management, used by the CLI.
 
 <br />
 
+## OpenAI Codex & GPT-5.6 Integration
+
+HelixBox was built and optimized with substantial assistance from OpenAI Codex and GPT-5.6:
+- **Rust PTY Delta Engine**: Codex co-authored the optimized incremental screen buffer diffing logic in the Rust PTY rendering loop, ensuring low-latency communication over standard output.
+- **WebSocket Reconnection Logic**: GPT-5.6 helped design the network reconnection state machine in the Bun WebSocket proxy to maintain active connection states during mobile cellular handoffs.
+- **Protocol Typings**: Codex generated TypeScript definitions for the control-plane RPC protocol to ensure type safety between the mobile app and the local CLI bridge.
+
+<br />
+
 ## 📄 License
 
 MIT: See [LICENSE](LICENSE) for details.

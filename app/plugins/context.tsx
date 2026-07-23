@@ -21,8 +21,8 @@ import {
   WorkspaceState,
 } from './types';
 
-const BOTTOM_BAR_STORAGE_KEY = '@lunel_bottom_bar';
-const WORKSPACE_STORAGE_KEY = '@lunel_workspace';
+const BOTTOM_BAR_STORAGE_KEY = '@helixbox_bottom_bar';
+const WORKSPACE_STORAGE_KEY = '@helixbox_workspace';
 
 interface PluginContextType {
   // Plugin registry access

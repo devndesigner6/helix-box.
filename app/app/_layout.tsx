@@ -132,7 +132,7 @@ SplashScreen.preventAutoHideAsync();
 const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const APP_KEEP_AWAKE_TAG = "lunel-app-global";
+const APP_KEEP_AWAKE_TAG = "helixbox-app-global";
 
 function asUuidOrZero(value: string | null | undefined): string {
   if (!value) return ZERO_UUID;
@@ -148,7 +148,7 @@ function RootLayoutContent() {
   const isHelp = pathname.startsWith("/help");
   const isFeedback = pathname.startsWith("/feedback");
   const isAuth = pathname.startsWith("/auth");
-  const isLunelConnect = pathname.startsWith("/lunel-connect");
+  const isLunelConnect = pathname.startsWith("/lunel-connect") || pathname.startsWith("/helixbox-connect");
   const isOnboarding = pathname.startsWith("/onboarding");
   const statusBarBg = isLunelConnect
     ? "#000000"

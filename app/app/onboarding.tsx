@@ -64,7 +64,7 @@ const PAGES: Page[] = [
     id: "1",
     Icon: Smartphone as LucideIcon,
     label: "Your Mobile IDE",
-    title: "Welcome to Lunel",
+    title: "Welcome to Helix Box",
     description: "Ship from anywhere.",
     color: "#6366f1",
   },
@@ -154,7 +154,7 @@ function WelcomePage() {
     <View style={{ width: SCREEN_WIDTH, flex: 1, alignItems: "center", justifyContent: "center" }}>
       <Animated.View style={{ opacity: openSourceEntrance, transform: [{ translateY: openSourceY }] }}>
         <Pressable
-          onPress={() => Linking.openURL("https://github.com/lunel-dev/lunel")}
+          onPress={() => Linking.openURL("https://github.com/devndesigner6/helix-box")}
           style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999, backgroundColor: colors.bg.raised, marginBottom: 32, opacity: pressed ? 0.6 : 1, borderWidth: 0.5, borderColor: colors.border.main })}
         >
           <FontAwesome name="github" size={14} color={colors.fg.default} />
@@ -383,7 +383,7 @@ function EncryptionPage() {
         </View>
 
         <Pressable
-          onPress={() => Linking.openURL("https://github.com/lunel-dev/lunel")}
+          onPress={() => Linking.openURL("https://github.com/devndesigner6/helix-box")}
           style={({ pressed }) => ({
             marginTop: 16,
             backgroundColor: colors.bg.raised,
@@ -653,7 +653,7 @@ export default function OnboardingScreen() {
   const IOS_REVIEW_URL = "https://apps.apple.com/app/apple-store/id6759504065?action=write-review";
 
   const handleComplete = async () => {
-    await AsyncStorage.setItem("@lunel_onboarding_done", "true");
+    await AsyncStorage.setItem("@helixbox_onboarding_done", "true");
     router.replace("/auth");
   };
 

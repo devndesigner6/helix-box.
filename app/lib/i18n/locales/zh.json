@@ -25,9 +25,9 @@
     "openNewTerminal": "打开新终端"
   },
   "onboarding": {
-    "welcome": "欢迎使用 Lunel",
+    "welcome": "欢迎使用 Helix Box",
     "shipFromAnywhere": "随时随地发布代码。",
-    "description": "lunel 将完整的开发环境装进你的口袋",
+    "description": "helixbox 将完整的开发环境装进你的口袋",
     "endToEndEncryption": "端对端加密",
     "free": "免费",
     "openSource": "开源",
@@ -40,7 +40,7 @@
     "endToEndEncryptedLabel": "端对端加密",
     "codeNeverTouches": "你的代码永远不会经过我们的服务器",
     "foreverFree": "永久免费",
-    "lunelConnect": "Lunel Connect 永远免费",
+    "lunelConnect": "Helix Box Connect 永远免费",
     "worksAnyStack": "支持任何技术栈",
     "nextJsNode": "Next.js、Node、React Native 等",
     "whatPeopleSay": "用户怎么说",
@@ -50,7 +50,7 @@
     "skip": "跳过",
     "privacyFirst": "隐私优先",
     "securityInvisible": "安全感无处不在",
-    "keepPrivate": "Lunel 默认保护你的会话隐私，无需额外配置即可连接和发布。",
+    "keepPrivate": "Helix Box 默认保护你的会话隐私，无需额外配置即可连接和发布。",
     "endToEndSessions": "端对端加密会话",
     "encryptedBetween": "在你的设备与主机之间全程加密。",
     "localPairing": "本地 QR 码配对",
@@ -85,15 +85,15 @@
     "review1Title": "移动开发者的游戏规则改变者",
     "review1Text": "在火车上用手机推送了一个热修复，居然一切正常。完整终端、真实 shell，全都有。难以置信这是免费的。",
     "review2Title": "终于有了真正的移动 IDE",
-    "review2Text": "我试过的其他应用都像玩具。Lunel 真的能让我工作。编辑器扎实，git 内置，QR 连接无缝衔接。",
+    "review2Text": "我试过的其他应用都像玩具。Helix Box 真的能让我工作。编辑器扎实，git 内置，QR 连接无缝衔接。",
     "review3Title": "配置只用了10秒钟",
     "review3Text": "从终端扫描 QR 码，瞬间就进入了我的仓库。还支持端对端加密，让我很放心。强烈推荐。",
-    "leaveReviewPrompt": "如果你觉得 Lunel 还不错，留下一个评价可以帮助更多开发者发现它"
+    "leaveReviewPrompt": "如果你觉得 Helix Box 还不错，留下一个评价可以帮助更多开发者发现它"
   },
   "auth": {
-    "appName": "Lunel",
+    "appName": "Helix Box",
     "tagline": "随时随地发布",
-    "scanConnect": "使用 Lunel Connect 扫描",
+    "scanConnect": "使用 Helix Box Connect 扫描",
     "pastSessions": "历史会话",
     "legal": "继续即表示你同意我们的",
     "termsOfService": "服务条款",
@@ -120,7 +120,7 @@
   },
   "workspace": {
     "connectionLostTitle": "连接已断开",
-    "connectionLostDesc": "你的会话已断开，请重新运行 npx lunel-cli 以重新连接。",
+    "connectionLostDesc": "你的会话已断开，请重新运行 npx helixbox-cli 以重新连接。",
     "sessionDisconnectedTitle": "会话已断开",
     "sessionDisconnectedDesc": "自动重连失败，请返回主页并重新连接会话。",
     "goHome": "返回主页",
@@ -195,7 +195,7 @@
     "title": "应用",
     "display": "显示",
     "keepAwake": "保持屏幕常亮",
-    "preventAutoLock": "打开 Lunel 时防止自动锁屏"
+    "preventAutoLock": "打开 Helix Box 时防止自动锁屏"
   },
   "settingsEditor": {
     "title": "编辑器",
@@ -276,7 +276,7 @@
     "submit": "提交",
     "loadingFiles": "加载文件中...",
     "notInstalledTitle": "{{backend}} 未安装",
-    "notInstalledDesc": "您的电脑未安装 {{backend}}。请手动安装，或重新运行 npx lunel-cli 并在询问时按 y 安装缺失的 AI 运行时。",
+    "notInstalledDesc": "您的电脑未安装 {{backend}}。请手动安装，或重新运行 npx helixbox-cli 并在询问时按 y 安装缺失的 AI 运行时。",
     "aiError": "AI 错误",
     "photosPermTitle": "相册权限",
     "photosPermDesc": "上传图片需要相册访问权限。",
@@ -301,9 +301,9 @@
     "defaultConversationTitle": "对话",
     "anErrorOccurred": "发生了一个错误",
     "failedRenameSession": "重命名会话失败",
-    "codexUndoNotSupported": "Lunel 暂不支持 Codex 撤销操作",
-    "codexRedoNotSupported": "Lunel 暂不支持 Codex 重做操作",
-    "codexInitNotSupported": "Lunel 暂不支持 Codex 初始化操作"
+    "codexUndoNotSupported": "Helix Box 暂不支持 Codex 撤销操作",
+    "codexRedoNotSupported": "Helix Box 暂不支持 Codex 重做操作",
+    "codexInitNotSupported": "Helix Box 暂不支持 Codex 初始化操作"
   },
   "settingsBrainrot": {
     "title": "摸鱼模式",
@@ -394,14 +394,14 @@
     "title": "帮助与信息",
     "gettingStarted": "快速开始",
     "question1": "如何连接到会话？",
-    "answer1": "在你的主机上运行 `npx lunel-cli`，然后用应用扫描生成的二维码。",
+    "answer1": "在你的主机上运行 `npx helixbox-cli`，然后用应用扫描生成的二维码。",
     "question2": "断开连接后怎么办？",
     "answer2": "打开主页，从新的 CLI 会话扫描新的二维码以重新连接。",
     "troubleshooting": "故障排查",
     "question3": "扫描仪为什么不工作？",
     "answer3": "请在 iOS 设置中启用相机权限，并确保二维码完全可见。",
     "question4": "为什么无法连接？",
-    "answer4": "请确认主机在线，重新运行 `npx lunel-cli`，并扫描最新的二维码。",
+    "answer4": "请确认主机在线，重新运行 `npx helixbox-cli`，并扫描最新的二维码。",
     "links": "链接",
     "terms": "条款",
     "policy": "政策",
@@ -433,7 +433,7 @@
     "howToConnectTitle": "如何连接",
     "howToConnectSubtitle": "运行一个命令，扫描二维码，即可进入",
     "step1Title": "在电脑上打开终端",
-    "step1Desc": "导航到你想让 Lunel 工作的代码库目录",
+    "step1Desc": "导航到你想让 Helix Box 工作的代码库目录",
     "step2Title": "运行命令",
     "step2Desc": "首次在代码库中运行会生成二维码供连接。再次运行则直接恢复上次会话，无需新二维码。如需重新连接，点击应用中的历史会话即可。",
     "needFreshCode": "需要新代码？",
@@ -446,7 +446,7 @@
     "errorConnectionFailed": "连接失败"
   },
   "notConnected": {
-    "appName": "lunel",
+    "appName": "helixbox",
     "tagline": "随时随地发布"
   },
   "footer": {

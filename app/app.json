@@ -1,7 +1,8 @@
 {
   "expo": {
-    "name": "helixbox",
+    "name": "Helix Box",
     "slug": "helixbox",
+    "owner": "devndesigner",
     "version": "1.0.7",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -27,7 +28,9 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ],
       "package": "xyz.helixbox.app",
       "versionCode": 2
@@ -56,12 +59,6 @@
       ],
       "expo-document-picker",
       [
-        "@hot-updater/react-native",
-        {
-          "channel": "production"
-        }
-      ],
-      [
         "expo-splash-screen",
         {
           "image": "./assets/images/splash.png",
@@ -85,6 +82,9 @@
         "unstable_settings": {
           "initialRouteName": "index"
         }
+      },
+      "eas": {
+        "projectId": "40572439-3902-43f8-bfff-b7e98b33c18a"
       }
     }
   }

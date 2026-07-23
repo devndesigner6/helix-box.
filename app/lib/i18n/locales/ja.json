@@ -25,9 +25,9 @@
     "openNewTerminal": "新しいターミナルを開く"
   },
   "onboarding": {
-    "welcome": "Lunelへようこそ",
+    "welcome": "Helix Boxへようこそ",
     "shipFromAnywhere": "どこからでもリリース。",
-    "description": "lunel は完全な開発環境をポケットに収めます",
+    "description": "helixbox は完全な開発環境をポケットに収めます",
     "endToEndEncryption": "エンドツーエンド暗号化",
     "free": "無料",
     "openSource": "オープンソース",
@@ -40,7 +40,7 @@
     "endToEndEncryptedLabel": "エンドツーエンド暗号化",
     "codeNeverTouches": "あなたのコードは私たちのサーバーに触れません",
     "foreverFree": "永久無料",
-    "lunelConnect": "Lunel Connectは永遠に無料",
+    "lunelConnect": "Helix Box Connectは永遠に無料",
     "worksAnyStack": "あらゆるスタックに対応",
     "nextJsNode": "Next.js、Node、React Nativeなど",
     "whatPeopleSay": "ユーザーの声",
@@ -50,7 +50,7 @@
     "skip": "スキップ",
     "privacyFirst": "プライバシー優先",
     "securityInvisible": "自然なセキュリティ",
-    "keepPrivate": "Lunelはデフォルトでセッションをプライベートに保つので、追加設定なしで接続してリリースできます。",
+    "keepPrivate": "Helix Boxはデフォルトでセッションをプライベートに保つので、追加設定なしで接続してリリースできます。",
     "endToEndSessions": "エンドツーエンド暗号化セッション",
     "encryptedBetween": "デバイスとマシン間で暗号化。",
     "localPairing": "QRによるローカルペアリング",
@@ -85,15 +85,15 @@
     "review1Title": "外出先の開発者に革命",
     "review1Text": "電車でスマホからホットフィックスをプッシュしたら普通に動いた。フルターミナル、本物のシェル、全部ある。これが無料とは信じられない。",
     "review2Title": "ついに本物のモバイルIDE",
-    "review2Text": "他のアプリはおもちゃみたいだった。Lunelは本当に作業できる。エディタはしっかりしてるし、gitが内蔵でQR接続もシームレス。",
+    "review2Text": "他のアプリはおもちゃみたいだった。Helix Boxは本当に作業できる。エディタはしっかりしてるし、gitが内蔵でQR接続もシームレス。",
     "review3Title": "セットアップに10秒",
     "review3Text": "ターミナルからQRをスキャンしたら即リポジトリに入れた。エンドツーエンド暗号化で安心感もある。超おすすめ。",
-    "leaveReviewPrompt": "Lunelが良さそうだと思ったら、レビューを書くことでより多くの開発者に届きます"
+    "leaveReviewPrompt": "Helix Boxが良さそうだと思ったら、レビューを書くことでより多くの開発者に届きます"
   },
   "auth": {
-    "appName": "Lunel",
+    "appName": "Helix Box",
     "tagline": "どこからでもリリース",
-    "scanConnect": "Lunel Connectでスキャン",
+    "scanConnect": "Helix Box Connectでスキャン",
     "pastSessions": "過去のセッション",
     "legal": "続けることで以下に同意します",
     "termsOfService": "利用規約",
@@ -120,7 +120,7 @@
   },
   "workspace": {
     "connectionLostTitle": "接続が切れました",
-    "connectionLostDesc": "セッションが切断されました。npx lunel-cliを再実行して再接続してください。",
+    "connectionLostDesc": "セッションが切断されました。npx helixbox-cliを再実行して再接続してください。",
     "sessionDisconnectedTitle": "セッション切断",
     "sessionDisconnectedDesc": "自動再接続に失敗しました。ホームに戻りセッションに再接続してください。",
     "goHome": "ホームへ",
@@ -195,7 +195,7 @@
     "title": "アプリ",
     "display": "表示",
     "keepAwake": "スリープを防止",
-    "preventAutoLock": "Lunel使用中は自動ロックを防止"
+    "preventAutoLock": "Helix Box使用中は自動ロックを防止"
   },
   "settingsEditor": {
     "title": "エディタ",
@@ -276,7 +276,7 @@
     "submit": "送信",
     "loadingFiles": "ファイルを読み込み中...",
     "notInstalledTitle": "{{backend}}がインストールされていません",
-    "notInstalledDesc": "PCに{{backend}}がインストールされていません。手動でインストールするか、npx lunel-cliを再実行して不足しているAIランタイムのインストールを促すプロンプトでyを押してください。",
+    "notInstalledDesc": "PCに{{backend}}がインストールされていません。手動でインストールするか、npx helixbox-cliを再実行して不足しているAIランタイムのインストールを促すプロンプトでyを押してください。",
     "aiError": "AIエラー",
     "photosPermTitle": "写真の権限",
     "photosPermDesc": "画像をアップロードするには写真ライブラリの権限が必要です。",
@@ -301,9 +301,9 @@
     "defaultConversationTitle": "会話",
     "anErrorOccurred": "エラーが発生しました",
     "failedRenameSession": "セッション名の変更に失敗しました",
-    "codexUndoNotSupported": "LunelではCodexの元に戻す操作はまだサポートされていません",
-    "codexRedoNotSupported": "LunelではCodexのやり直し操作はまだサポートされていません",
-    "codexInitNotSupported": "LunelではCodexの初期化操作はまだサポートされていません"
+    "codexUndoNotSupported": "Helix BoxではCodexの元に戻す操作はまだサポートされていません",
+    "codexRedoNotSupported": "Helix BoxではCodexのやり直し操作はまだサポートされていません",
+    "codexInitNotSupported": "Helix BoxではCodexの初期化操作はまだサポートされていません"
   },
   "settingsBrainrot": {
     "title": "ブレインロット",
@@ -394,14 +394,14 @@
     "title": "ヘルプと情報",
     "gettingStarted": "はじめに",
     "question1": "セッションに接続するには？",
-    "answer1": "マシンで`npx lunel-cli`を実行し、アプリで生成されたQRコードをスキャンしてください。",
+    "answer1": "マシンで`npx helixbox-cli`を実行し、アプリで生成されたQRコードをスキャンしてください。",
     "question2": "切断された場合は？",
     "answer2": "ホームを開き、新しいCLIセッションから新しいQRコードをスキャンして再接続してください。",
     "troubleshooting": "トラブルシューティング",
     "question3": "スキャナーが機能しないのはなぜ？",
     "answer3": "iOSの設定でカメラの権限を有効にし、QRコードが完全に見えていることを確認してください。",
     "question4": "接続できないのはなぜ？",
-    "answer4": "マシンがオンラインであることを確認し、`npx lunel-cli`を再実行して最新のQRコードをスキャンしてください。",
+    "answer4": "マシンがオンラインであることを確認し、`npx helixbox-cli`を再実行して最新のQRコードをスキャンしてください。",
     "links": "リンク",
     "terms": "利用規約",
     "policy": "ポリシー",
@@ -433,7 +433,7 @@
     "howToConnectTitle": "接続方法",
     "howToConnectSubtitle": "コマンドを1つ実行し、QRをスキャンすれば完了",
     "step1Title": "PCでターミナルを開く",
-    "step1Desc": "Lunelを使いたいリポジトリのディレクトリに移動",
+    "step1Desc": "Helix Boxを使いたいリポジトリのディレクトリに移動",
     "step2Title": "コマンドを実行",
     "step2Desc": "リポジトリで初回実行時はQRコードが表示されます。再実行すると前回のセッションが再開されQRは不要です。再接続するにはアプリで前のセッションをタップしてください",
     "needFreshCode": "新しいコードが必要？",
@@ -446,7 +446,7 @@
     "errorConnectionFailed": "接続に失敗しました"
   },
   "notConnected": {
-    "appName": "lunel",
+    "appName": "helixbox",
     "tagline": "どこからでもリリース"
   },
   "footer": {

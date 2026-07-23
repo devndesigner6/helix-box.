@@ -14,7 +14,7 @@ try {
   });
 }
 
-const DEFAULT_GATEWAY_WS_URL = 'wss://gateway.helixbox.xyz';
+const DEFAULT_GATEWAY_WS_URL = process.env.EXPO_PUBLIC_GATEWAY_URL || 'wss://helixbox-proxy.onrender.com';
 
 // ============================================================================
 // Types

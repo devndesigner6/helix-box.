@@ -25,9 +25,9 @@
     "openNewTerminal": "Mở terminal mới"
   },
   "onboarding": {
-    "welcome": "Chào mừng đến Lunel",
+    "welcome": "Chào mừng đến Helix Box",
     "shipFromAnywhere": "Triển khai từ bất cứ đâu.",
-    "description": "lunel mang toàn bộ môi trường phát triển vào túi của bạn",
+    "description": "helixbox mang toàn bộ môi trường phát triển vào túi của bạn",
     "endToEndEncryption": "Mã hóa đầu cuối",
     "free": "Miễn phí",
     "openSource": "Mã nguồn mở",
@@ -40,7 +40,7 @@
     "endToEndEncryptedLabel": "Mã hóa đầu cuối",
     "codeNeverTouches": "Code của bạn không bao giờ chạm đến máy chủ của chúng tôi",
     "foreverFree": "Miễn phí mãi mãi",
-    "lunelConnect": "Lunel Connect không tốn gì, mãi mãi",
+    "lunelConnect": "Helix Box Connect không tốn gì, mãi mãi",
     "worksAnyStack": "Hoạt động với mọi stack",
     "nextJsNode": "Next.js, Node, React Native và nhiều hơn",
     "whatPeopleSay": "Mọi người nói gì",
@@ -50,7 +50,7 @@
     "skip": "Bỏ qua",
     "privacyFirst": "Quyền riêng tư trước tiên",
     "securityInvisible": "Bảo mật vô hình",
-    "keepPrivate": "Lunel giữ phiên của bạn riêng tư theo mặc định, vì vậy bạn có thể kết nối và triển khai mà không cần cài đặt thêm.",
+    "keepPrivate": "Helix Box giữ phiên của bạn riêng tư theo mặc định, vì vậy bạn có thể kết nối và triển khai mà không cần cài đặt thêm.",
     "endToEndSessions": "Phiên mã hóa đầu cuối",
     "encryptedBetween": "Được mã hóa giữa thiết bị và máy của bạn.",
     "localPairing": "Ghép đôi cục bộ với QR",
@@ -85,15 +85,15 @@
     "review1Title": "Thay đổi cuộc chơi cho dev di động",
     "review1Text": "Đã push hotfix từ điện thoại trên tàu và nó chỉ hoạt động. Terminal đầy đủ, shell thật, mọi thứ. Không thể tin đây là miễn phí.",
     "review2Title": "Cuối cùng là IDE mobile thực sự",
-    "review2Text": "Mọi app khác tôi thử đều như đồ chơi. Lunel thực sự cho tôi làm việc. Editor vững chắc, git tích hợp và kết nối QR liền mạch.",
+    "review2Text": "Mọi app khác tôi thử đều như đồ chơi. Helix Box thực sự cho tôi làm việc. Editor vững chắc, git tích hợp và kết nối QR liền mạch.",
     "review3Title": "Cài đặt chỉ mất đúng 10 giây",
     "review3Text": "Quét QR từ terminal và tôi đã vào repo ngay lập tức. Mã hóa đầu cuối cũng rất yên tâm. Rất khuyến khích.",
-    "leaveReviewPrompt": "Nếu Lunel có vẻ tốt với bạn, để lại đánh giá nhanh giúp nhiều lập trình viên khác tìm thấy nó"
+    "leaveReviewPrompt": "Nếu Helix Box có vẻ tốt với bạn, để lại đánh giá nhanh giúp nhiều lập trình viên khác tìm thấy nó"
   },
   "auth": {
-    "appName": "Lunel",
+    "appName": "Helix Box",
     "tagline": "Triển khai từ bất cứ đâu",
-    "scanConnect": "Quét với Lunel Connect",
+    "scanConnect": "Quét với Helix Box Connect",
     "pastSessions": "Phiên trước",
     "legal": "Bằng cách tiếp tục, bạn đồng ý với",
     "termsOfService": "Điều khoản dịch vụ",
@@ -120,7 +120,7 @@
   },
   "workspace": {
     "connectionLostTitle": "Mất kết nối",
-    "connectionLostDesc": "Phiên của bạn đã bị ngắt kết nối. Chạy lại npx lunel-cli để kết nối lại.",
+    "connectionLostDesc": "Phiên của bạn đã bị ngắt kết nối. Chạy lại npx helixbox-cli để kết nối lại.",
     "sessionDisconnectedTitle": "Phiên bị ngắt kết nối",
     "sessionDisconnectedDesc": "Kết nối lại tự động thất bại. Về trang chủ và kết nối lại phiên.",
     "goHome": "Về trang chủ",
@@ -195,7 +195,7 @@
     "title": "Ứng dụng",
     "display": "MÀN HÌNH",
     "keepAwake": "Giữ ứng dụng thức",
-    "preventAutoLock": "Ngăn khóa tự động khi Lunel đang mở"
+    "preventAutoLock": "Ngăn khóa tự động khi Helix Box đang mở"
   },
   "settingsEditor": {
     "title": "Trình soạn thảo",
@@ -276,7 +276,7 @@
     "submit": "Gửi",
     "loadingFiles": "Đang tải tệp...",
     "notInstalledTitle": "{{backend}} chưa được cài đặt",
-    "notInstalledDesc": "PC của bạn chưa cài {{backend}}. Cài thủ công hoặc chạy lại npx lunel-cli và nhấn y khi được hỏi về cài đặt các runtime AI thiếu.",
+    "notInstalledDesc": "PC của bạn chưa cài {{backend}}. Cài thủ công hoặc chạy lại npx helixbox-cli và nhấn y khi được hỏi về cài đặt các runtime AI thiếu.",
     "aiError": "Lỗi AI",
     "photosPermTitle": "Quyền ảnh",
     "photosPermDesc": "Cần quyền truy cập thư viện ảnh để tải ảnh lên.",
@@ -301,9 +301,9 @@
     "defaultConversationTitle": "Cuộc trò chuyện",
     "anErrorOccurred": "Đã xảy ra lỗi",
     "failedRenameSession": "Đổi tên phiên thất bại",
-    "codexUndoNotSupported": "Hoàn tác Codex chưa được hỗ trợ trong Lunel",
-    "codexRedoNotSupported": "Làm lại Codex chưa được hỗ trợ trong Lunel",
-    "codexInitNotSupported": "Khởi tạo Codex chưa được hỗ trợ trong Lunel"
+    "codexUndoNotSupported": "Hoàn tác Codex chưa được hỗ trợ trong Helix Box",
+    "codexRedoNotSupported": "Làm lại Codex chưa được hỗ trợ trong Helix Box",
+    "codexInitNotSupported": "Khởi tạo Codex chưa được hỗ trợ trong Helix Box"
   },
   "settingsBrainrot": {
     "title": "Brainrot",
@@ -394,14 +394,14 @@
     "title": "Trợ giúp & Thông tin",
     "gettingStarted": "BẮT ĐẦU",
     "question1": "Làm cách nào để kết nối với phiên?",
-    "answer1": "Chạy `npx lunel-cli` trên máy của bạn, sau đó quét mã QR được tạo từ app.",
+    "answer1": "Chạy `npx helixbox-cli` trên máy của bạn, sau đó quét mã QR được tạo từ app.",
     "question2": "Nếu tôi bị ngắt kết nối thì sao?",
     "answer2": "Mở Trang chủ và quét mã QR mới từ phiên CLI mới để kết nối lại.",
     "troubleshooting": "XỬ LÝ SỰ CỐ",
     "question3": "Tại sao máy quét không hoạt động?",
     "answer3": "Bật quyền camera trong Cài đặt iOS và đảm bảo mã QR hoàn toàn hiển thị.",
     "question4": "Tại sao tôi không kết nối được?",
-    "answer4": "Kiểm tra máy của bạn có trực tuyến không, chạy lại `npx lunel-cli` và quét mã QR mới nhất.",
+    "answer4": "Kiểm tra máy của bạn có trực tuyến không, chạy lại `npx helixbox-cli` và quét mã QR mới nhất.",
     "links": "LIÊN KẾT",
     "terms": "Điều khoản",
     "policy": "Chính sách",
@@ -433,7 +433,7 @@
     "howToConnectTitle": "Cách kết nối",
     "howToConnectSubtitle": "Chạy một lệnh, quét QR, xong",
     "step1Title": "Mở terminal trên PC",
-    "step1Desc": "Điều hướng đến repository bạn muốn Lunel làm việc",
+    "step1Desc": "Điều hướng đến repository bạn muốn Helix Box làm việc",
     "step2Title": "Chạy lệnh",
     "step2Desc": "Lần đầu trong repository sẽ tạo mã QR để kết nối. Chạy lại và nó chỉ tiếp tục phiên cuối mà không cần QR mới. Để kết nối lại, nhấn vào phiên trước trong app",
     "needFreshCode": "Cần mã mới?",
@@ -446,7 +446,7 @@
     "errorConnectionFailed": "Kết nối thất bại"
   },
   "notConnected": {
-    "appName": "lunel",
+    "appName": "helixbox",
     "tagline": "triển khai từ bất cứ đâu"
   },
   "footer": {

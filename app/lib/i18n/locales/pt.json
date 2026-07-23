@@ -25,9 +25,9 @@
     "openNewTerminal": "Abrir novo terminal"
   },
   "onboarding": {
-    "welcome": "Bem-vindo ao Lunel",
+    "welcome": "Bem-vindo ao Helix Box",
     "shipFromAnywhere": "Publique de qualquer lugar.",
-    "description": "o lunel coloca seu ambiente de desenvolvimento completo no seu bolso",
+    "description": "o helixbox coloca seu ambiente de desenvolvimento completo no seu bolso",
     "endToEndEncryption": "Criptografia de ponta a ponta",
     "free": "Grátis",
     "openSource": "Código aberto",
@@ -40,7 +40,7 @@
     "endToEndEncryptedLabel": "Criptografado de ponta a ponta",
     "codeNeverTouches": "Seu código nunca toca nossos servidores",
     "foreverFree": "Grátis para sempre",
-    "lunelConnect": "Lunel Connect não custa nada, nunca",
+    "lunelConnect": "Helix Box Connect não custa nada, nunca",
     "worksAnyStack": "Funciona com qualquer stack",
     "nextJsNode": "Next.js, Node, React Native e mais",
     "whatPeopleSay": "O que as pessoas dizem",
@@ -50,7 +50,7 @@
     "skip": "Pular",
     "privacyFirst": "Privacidade em primeiro lugar",
     "securityInvisible": "Segurança que parece invisível",
-    "keepPrivate": "O Lunel mantém sua sessão privada por padrão, então você pode conectar e publicar sem configuração extra.",
+    "keepPrivate": "O Helix Box mantém sua sessão privada por padrão, então você pode conectar e publicar sem configuração extra.",
     "endToEndSessions": "Sessões criptografadas de ponta a ponta",
     "encryptedBetween": "Criptografado entre seu dispositivo e máquina.",
     "localPairing": "Emparelhamento local com QR",
@@ -85,15 +85,15 @@
     "review1Title": "Uma virada de jogo para devs em movimento",
     "review1Text": "Fiz push de um hotfix pelo celular no trem e simplesmente funcionou. Terminal completo, shell real, tudo. Não consigo acreditar que é grátis.",
     "review2Title": "Finalmente um IDE mobile de verdade",
-    "review2Text": "Todos os outros apps que tentei pareciam brinquedos. O Lunel realmente me deixa trabalhar. O editor é sólido, git integrado e a conexão QR é perfeita.",
+    "review2Text": "Todos os outros apps que tentei pareciam brinquedos. O Helix Box realmente me deixa trabalhar. O editor é sólido, git integrado e a conexão QR é perfeita.",
     "review3Title": "A configuração demorou literalmente 10 segundos",
     "review3Text": "Escaneei o QR do meu terminal e já estava no meu repositório. Criptografado de ponta a ponta também, o que me dá tranquilidade. Altamente recomendado.",
-    "leaveReviewPrompt": "Se o Lunel parece bom pra você, deixar uma avaliação rápida ajuda mais desenvolvedores a encontrá-lo"
+    "leaveReviewPrompt": "Se o Helix Box parece bom pra você, deixar uma avaliação rápida ajuda mais desenvolvedores a encontrá-lo"
   },
   "auth": {
-    "appName": "Lunel",
+    "appName": "Helix Box",
     "tagline": "Publique de qualquer lugar",
-    "scanConnect": "Escanear com Lunel Connect",
+    "scanConnect": "Escanear com Helix Box Connect",
     "pastSessions": "Sessões anteriores",
     "legal": "Ao continuar, você concorda com nossos",
     "termsOfService": "Termos de serviço",
@@ -120,7 +120,7 @@
   },
   "workspace": {
     "connectionLostTitle": "Conexão perdida",
-    "connectionLostDesc": "Sua sessão foi desconectada. Execute npx lunel-cli novamente para reconectar.",
+    "connectionLostDesc": "Sua sessão foi desconectada. Execute npx helixbox-cli novamente para reconectar.",
     "sessionDisconnectedTitle": "Sessão desconectada",
     "sessionDisconnectedDesc": "A reconexão automática falhou. Vá para o início e reconecte à sua sessão.",
     "goHome": "Ir para o início",
@@ -195,7 +195,7 @@
     "title": "App",
     "display": "TELA",
     "keepAwake": "Manter app ativo",
-    "preventAutoLock": "Impedir bloqueio automático enquanto o Lunel estiver aberto"
+    "preventAutoLock": "Impedir bloqueio automático enquanto o Helix Box estiver aberto"
   },
   "settingsEditor": {
     "title": "Editor",
@@ -276,7 +276,7 @@
     "submit": "Enviar",
     "loadingFiles": "Carregando arquivos...",
     "notInstalledTitle": "{{backend}} não instalado",
-    "notInstalledDesc": "Seu PC não tem {{backend}} instalado. Instale manualmente ou execute npx lunel-cli novamente e pressione y quando pedir para instalar os runtimes de IA ausentes.",
+    "notInstalledDesc": "Seu PC não tem {{backend}} instalado. Instale manualmente ou execute npx helixbox-cli novamente e pressione y quando pedir para instalar os runtimes de IA ausentes.",
     "aiError": "Erro de IA",
     "photosPermTitle": "Permissão de fotos",
     "photosPermDesc": "Permissão de biblioteca de fotos é necessária para fazer upload de imagens.",
@@ -301,9 +301,9 @@
     "defaultConversationTitle": "Conversa",
     "anErrorOccurred": "Ocorreu um erro",
     "failedRenameSession": "Falha ao renomear sessão",
-    "codexUndoNotSupported": "Desfazer do Codex ainda não é suportado no Lunel",
-    "codexRedoNotSupported": "Refazer do Codex ainda não é suportado no Lunel",
-    "codexInitNotSupported": "Inicializar do Codex ainda não é suportado no Lunel"
+    "codexUndoNotSupported": "Desfazer do Codex ainda não é suportado no Helix Box",
+    "codexRedoNotSupported": "Refazer do Codex ainda não é suportado no Helix Box",
+    "codexInitNotSupported": "Inicializar do Codex ainda não é suportado no Helix Box"
   },
   "settingsBrainrot": {
     "title": "Brainrot",
@@ -394,14 +394,14 @@
     "title": "Ajuda e informações",
     "gettingStarted": "PRIMEIROS PASSOS",
     "question1": "Como me conecto a uma sessão?",
-    "answer1": "Execute `npx lunel-cli` na sua máquina e escaneie o código QR gerado no app.",
+    "answer1": "Execute `npx helixbox-cli` na sua máquina e escaneie o código QR gerado no app.",
     "question2": "E se eu for desconectado?",
     "answer2": "Abra o Início e escaneie um novo código QR de uma nova sessão do CLI para reconectar.",
     "troubleshooting": "SOLUÇÃO DE PROBLEMAS",
     "question3": "Por que o scanner não está funcionando?",
     "answer3": "Ative a permissão de câmera nas Configurações do iOS e certifique-se de que o código QR está completamente visível.",
     "question4": "Por que não estou conectando?",
-    "answer4": "Verifique se sua máquina está online, execute `npx lunel-cli` novamente e escaneie o código QR mais recente.",
+    "answer4": "Verifique se sua máquina está online, execute `npx helixbox-cli` novamente e escaneie o código QR mais recente.",
     "links": "LINKS",
     "terms": "Termos",
     "policy": "Política",
@@ -433,7 +433,7 @@
     "howToConnectTitle": "Como conectar",
     "howToConnectSubtitle": "Execute um comando, escaneie um QR e pronto",
     "step1Title": "Abra seu terminal no PC",
-    "step1Desc": "Navegue até o repositório onde você quer que o Lunel funcione",
+    "step1Desc": "Navegue até o repositório onde você quer que o Helix Box funcione",
     "step2Title": "Execute o comando",
     "step2Desc": "Na primeira vez em um repositório, ele gera um código QR para conectar. Execute novamente e apenas retoma a última sessão sem um novo QR. Para reconectar, toque na sessão anterior no app",
     "needFreshCode": "Precisa de um código novo?",
@@ -446,7 +446,7 @@
     "errorConnectionFailed": "Conexão falhou"
   },
   "notConnected": {
-    "appName": "lunel",
+    "appName": "helixbox",
     "tagline": "publique de qualquer lugar"
   },
   "footer": {

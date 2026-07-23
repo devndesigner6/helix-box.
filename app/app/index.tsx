@@ -7,8 +7,11 @@ export default function Index() {
   const [target, setTarget] = useState<"/onboarding" | "/auth" | null>(null);
 
   useEffect(() => {
-    AsyncStorage.getItem("@lunel_onboarding_done").then((val) => {
-      setTarget(val === "true" ? "/auth" : "/onboarding");
+    Promise.all([
+      AsyncStorage.getItem("@helixbox_onboarding_done"),
+      AsyncStorage.getItem("@lunel_onboarding_done"),
+    ]).then(([hb, lunel]) => {
+      setTarget((hb === "true" || lunel === "true") ? "/auth" : "/onboarding");
     });
   }, []);
 

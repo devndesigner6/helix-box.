@@ -6,8 +6,8 @@ import { configureProxy, startPortServers, stopAllServers } from '@/lib/proxySer
 import { logger } from '@/lib/logger';
 import { V2SessionTransport } from '@/lib/transport/v2';
 
-const DEFAULT_GATEWAY = 'wss://helixbox-proxy.onrender.com';
-const MANAGER_URL = 'https://helixbox-manager.onrender.com';
+const DEFAULT_GATEWAY = process.env.EXPO_PUBLIC_GATEWAY_URL || 'wss://helixbox-proxy.onrender.com';
+const MANAGER_URL = process.env.EXPO_PUBLIC_MANAGER_URL || 'https://helixbox-manager.onrender.com';
 const LAST_SESSION_STORAGE_KEY = 'helixbox_last_session';
 const LAST_SESSION_FALLBACK_STORAGE_KEY = '@helixbox_last_session_fallback';
 const PAIRED_SESSIONS_STORAGE_KEY = 'helixbox_paired_sessions';

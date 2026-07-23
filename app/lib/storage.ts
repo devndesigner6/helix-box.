@@ -16,8 +16,9 @@ if (Platform.OS !== 'web') {
 }
 
 // Base storage directory
+// Base storage directory
 const STORAGE_DIR = (Platform.OS !== 'web' && DirectoryClass && PathsObj)
-  ? new DirectoryClass(PathsObj.document, 'lunel-editor')
+  ? new DirectoryClass(PathsObj.document, 'helixbox-editor')
   : null;
 
 export interface StorageFileInfo {
@@ -45,8 +46,8 @@ class JsonStorage {
         const keys = Object.keys(localStorage);
         const files: StorageFileInfo[] = [];
         for (const key of keys) {
-          if (key.startsWith('lunel-editor:')) {
-            const name = key.replace('lunel-editor:', '');
+          if (key.startsWith('helixbox-editor:') || key.startsWith('lunel-editor:')) {
+            const name = key.replace(/^(helixbox-editor:|lunel-editor:)/, '');
             const val = localStorage.getItem(key) || '';
             files.push({
               name,
@@ -85,7 +86,7 @@ class JsonStorage {
 
     if (Platform.OS === 'web') {
       try {
-        const content = localStorage.getItem(`lunel-editor:${keyName}`);
+        const content = localStorage.getItem(`helixbox-editor:${keyName}`) || localStorage.getItem(`lunel-editor:${keyName}`);
         if (!content) return null;
         return JSON.parse(content) as T;
       } catch {
@@ -109,7 +110,7 @@ class JsonStorage {
 
     if (Platform.OS === 'web') {
       try {
-        localStorage.setItem(`lunel-editor:${keyName}`, JSON.stringify(data, null, 2));
+        localStorage.setItem(`helixbox-editor:${keyName}`, JSON.stringify(data, null, 2));
         return true;
       } catch {
         return false;
@@ -133,6 +134,7 @@ class JsonStorage {
 
     if (Platform.OS === 'web') {
       try {
+        localStorage.removeItem(`helixbox-editor:${keyName}`);
         localStorage.removeItem(`lunel-editor:${keyName}`);
         return true;
       } catch {
@@ -157,7 +159,7 @@ class JsonStorage {
 
     if (Platform.OS === 'web') {
       try {
-        return localStorage.getItem(`lunel-editor:${keyName}`) !== null;
+        return localStorage.getItem(`helixbox-editor:${keyName}`) !== null || localStorage.getItem(`lunel-editor:${keyName}`) !== null;
       } catch {
         return false;
       }
@@ -168,14 +170,16 @@ class JsonStorage {
   }
 }
 
-class LunelStorage {
+class HelixBoxStorage {
   readonly jsons = new JsonStorage();
 }
 
 // Global singleton
-export const lunelStorage = new LunelStorage();
+export const helixboxStorage = new HelixBoxStorage();
+export const lunelStorage = helixboxStorage;
 
-// Also export as part of a larger API namespace for future expansion
-export const lunelApi = {
-  storage: lunelStorage,
+// Export as part of API namespace
+export const helixboxApi = {
+  storage: helixboxStorage,
 };
+export const lunelApi = helixboxApi;
