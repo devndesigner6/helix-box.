@@ -18,27 +18,27 @@ export const CardFlip = ({ icon: Icon, title, description, backTitle, features }
         transition={{ duration: 0.6, ease: [0.77, 0, 0.175, 1] }}
       >
         {/* Front Face */}
-        <div className="absolute inset-0 backface-hidden rounded-2xl p-8 flex flex-col justify-between glass-panel liquid-glass-shadow hover:border-purple-500/50 transition-colors">
+        <div className="absolute inset-0 backface-hidden rounded-2xl p-8 flex flex-col justify-between agenta-card hover:border-[#A8F1F7] transition-all">
           <div className="flex flex-col gap-4">
-            <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
+            <div className="w-12 h-12 rounded-xl bg-[#A8F1F7]/20 border border-[#A8F1F7]/40 flex items-center justify-center text-slate-800 dark:text-cyan-300">
               <Icon className="w-6 h-6" />
             </div>
-            <h3 className="text-2xl font-bold font-heading text-white">{title}</h3>
-            <p className="text-gray-400 text-sm leading-relaxed">{description}</p>
+            <h3 className="text-2xl font-bold font-heading text-slate-900 dark:text-white">{title}</h3>
+            <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">{description}</p>
           </div>
-          <div className="flex items-center gap-2 text-xs text-gray-500">
+          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
             <span>Hover to flip details</span>
-            <RotateCw className="w-3 h-3 text-purple-400" />
+            <RotateCw className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />
           </div>
         </div>
 
         {/* Back Face */}
-        <div className="absolute inset-0 backface-hidden rotate-y-180 rounded-2xl p-8 flex flex-col justify-between bg-gray-900/95 border border-purple-500/60 shadow-2xl">
+        <div className="absolute inset-0 backface-hidden rotate-y-180 rounded-2xl p-8 flex flex-col justify-between bg-slate-900 border border-[#A8F1F7]/60 shadow-2xl text-white">
           <div>
-            <h4 className="text-lg font-bold text-cyan-400 mb-4 font-heading">{backTitle}</h4>
+            <h4 className="text-lg font-bold text-cyan-300 mb-4 font-heading">{backTitle}</h4>
             <ul className="space-y-3">
               {features.map((feat, idx) => (
-                <li key={idx} className="flex items-center gap-3 text-sm text-gray-300">
+                <li key={idx} className="flex items-center gap-3 text-sm text-slate-300">
                   <Check className="w-4 h-4 text-emerald-400 shrink-0" />
                   <span>{feat}</span>
                 </li>
