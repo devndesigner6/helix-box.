@@ -109,8 +109,8 @@ export default function HelpPage() {
           <LinkRow label={t('help.policy')} url="https://helixbox.xyz/policy" />
           <LinkRow label={t('help.security')} url="https://helixbox.xyz/security" />
           <LinkRow label={t('help.discord')} url="https://discord.gg/tdaywsP4HK" />
-          <LinkRow label={t('help.github')} url="https://github.com/devndesigner6/helix-box." />
-          <LinkRow label={t('help.twitter')} url="https://twitter.com/uselunel" />
+          <LinkRow label={t('help.github')} url="https://github.com/devndesigner6/helix-box" />
+          <LinkRow label={t('help.twitter')} url="https://github.com/devndesigner6/helix-box" />
         </View>
 
         <View style={{ height: spacing[8] }} />
