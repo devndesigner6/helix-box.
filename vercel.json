@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "name": "helixbox-landing",
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/landing/index.html"
+    },
+    {
+      "source": "/styles.css",
+      "destination": "/landing/styles.css"
+    },
+    {
+      "source": "/app.js",
+      "destination": "/landing/app.js"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/landing/$1"
+    }
+  ]
+}
