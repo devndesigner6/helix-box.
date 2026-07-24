@@ -1,17 +1,5 @@
 {
   "version": 2,
   "name": "helixbox-landing",
-  "builds": [
-    {
-      "src": "landing/package.json",
-      "use": "@vercel/static-build",
-      "config": { "distDir": "landing/dist" }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "landing/$1"
-    }
-  ]
+  "cleanUrls": true
 }
