@@ -4,23 +4,58 @@
 
 @layer base {
   body {
-    @apply bg-gray-950 text-gray-100 font-sans antialiased overflow-x-hidden;
+    @apply bg-slate-50 dark:bg-[#07090e] text-slate-900 dark:text-slate-100 font-sans antialiased overflow-x-hidden transition-colors duration-300;
   }
 }
 
-.liquid-glass-shadow {
-  box-shadow: 
-    0 20px 40px -15px rgba(0, 0, 0, 0.7),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.2),
-    inset 0 -1px 0 0 rgba(0, 0, 0, 0.4),
-    0 0 30px 0 rgba(139, 92, 246, 0.2);
+.agenta-pill-btn {
+  background: linear-gradient(135deg, #a7f3d0, #67e8f9);
+  color: #0f172a;
+  font-weight: 600;
+  border-radius: 9999px;
+  box-shadow: 0 4px 14px 0 rgba(103, 232, 249, 0.39);
+  transition: all 0.2s ease;
 }
 
-.glass-panel {
-  background: rgba(17, 24, 39, 0.65);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+.agenta-pill-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(103, 232, 249, 0.55);
+}
+
+.agenta-outline-btn {
+  border: 1px dashed rgba(148, 163, 184, 0.4);
+  color: #475569;
+  border-radius: 9999px;
+  transition: all 0.2s ease;
+}
+
+.dark .agenta-outline-btn {
+  color: #cbd5e1;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.agenta-outline-btn:hover {
+  border-style: solid;
+  border-color: #67e8f9;
+  color: #0284c7;
+}
+
+.dark .agenta-outline-btn:hover {
+  color: #38bdf8;
+}
+
+.agenta-glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.05);
+}
+
+.dark .agenta-glass-panel {
+  background: rgba(15, 23, 42, 0.75);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
 }
 
 /* 3D Perspective Card Flip */
@@ -39,4 +74,13 @@
 
 .rotate-y-180 {
   transform: rotateY(180deg);
+}
+
+/* Hide scrollbar for clean marquee */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

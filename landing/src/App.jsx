@@ -1,24 +1,24 @@
 import React, { useState } from 'react';
 import { Navbar } from './components/Navbar';
-import { Spotlight } from './components/Spotlight';
 import { CardFlip } from './components/CardFlip';
 import { LiquidGlassCard } from './components/LiquidGlassCard';
 import { TerminalShowcase } from './components/TerminalShowcase';
 import { 
-  Lock, 
-  Terminal, 
-  Coins, 
-  Trophy, 
+  Sparkles, 
   Smartphone, 
   Copy, 
   Check, 
+  ArrowUpRight, 
   ShieldCheck, 
   Zap, 
+  Terminal, 
+  Lock, 
+  Coins, 
+  Trophy,
   ArrowRight,
-  Sparkles,
+  Cpu,
   Layers,
-  Code,
-  CheckCircle2
+  Globe
 } from 'lucide-react';
 
 export default function App() {
@@ -30,81 +30,96 @@ export default function App() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  return (
-    <div className="relative min-h-screen bg-gray-950 text-gray-100 overflow-hidden font-sans selection:bg-purple-500 selection:text-white">
-      {/* Background Mesh Grid & Spotlight */}
-      <Spotlight className="-top-40 left-0 md:left-60 md:-top-20" fill="#8b5cf6" />
-      
-      <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#1f293715_1px,transparent_1px),linear-gradient(to_bottom,#1f293715_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
-        <div className="absolute top-1/4 left-10 w-96 h-96 bg-purple-600/20 rounded-full blur-[120px] animate-pulse-glow" />
-        <div className="absolute top-1/2 right-10 w-[500px] h-[500px] bg-cyan-500/20 rounded-full blur-[140px] animate-pulse-glow" />
-      </div>
+  const marqueeItems = [
+    "⚡ Zero-Trust Relays",
+    "🔒 E2E Encrypted",
+    "💎 Algorand x402 Micropayments",
+    "📱 Native PTY Terminal",
+    "🤖 AI Agent Compute",
+    "⚡ Sub-Second Settlement",
+    "🏆 OpenAI Build Week Winner",
+    "🌐 Open Source Software"
+  ];
 
+  return (
+    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#07090e] text-slate-900 dark:text-slate-100 font-sans selection:bg-cyan-200 selection:text-slate-900 transition-colors duration-300">
       <Navbar />
 
-      {/* Hero Section */}
-      <section className="relative z-10 pt-40 pb-20 px-6 max-w-6xl mx-auto text-center">
-        {/* OpenAI Winner Badge */}
-        <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full glass-panel border-purple-500/40 text-xs font-semibold text-gray-300 mb-8 shadow-xl hover:border-purple-500/80 transition-all cursor-pointer">
-          <Trophy className="w-4 h-4 text-amber-400" />
-          <span>OpenAI Build Week Hyderabad — <strong className="text-white">Best Presentation Award</strong></span>
-          <ArrowRight className="w-3.5 h-3.5 text-purple-400" />
+      {/* Hero Section — Exact Agenta Template Layout */}
+      <section className="pt-36 pb-16 px-6 max-w-6xl mx-auto text-center">
+        
+        {/* Agenta Pill Badge */}
+        <div className="inline-flex items-center gap-2 px-5 py-1.5 rounded-full border border-dashed border-slate-300 dark:border-slate-700 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm text-xs font-medium text-slate-600 dark:text-slate-300 mb-8 shadow-sm">
+          <Trophy className="w-4 h-4 text-amber-500" />
+          <span>OpenAI Build Week Hyderabad — <strong>Best Presentation Award</strong></span>
         </div>
 
-        <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold font-heading tracking-tight leading-[1.1] mb-6">
-          Build, run & debug directly from your <span className="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-500 bg-clip-text text-transparent">smartphone.</span>
+        {/* Agenta Cursive Script Title + Sans-Serif Line */}
+        <h1 className="mb-6 flex flex-col items-center">
+          <span className="font-script text-6xl sm:text-7xl md:text-8xl text-slate-800 dark:text-slate-100 tracking-wide font-normal leading-none mb-2">
+            Transcend terminal limits.
+          </span>
+          <span className="font-heading font-extrabold text-4xl sm:text-5xl md:text-6xl text-slate-900 dark:text-white tracking-tight leading-tight">
+            Augment your mobile workflow.
+          </span>
         </h1>
 
-        <p className="text-lg md:text-xl text-gray-400 max-w-3xl mx-auto leading-relaxed mb-10">
+        <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed mb-10 font-normal">
           The mobile-first Web/Native IDE & interactive PTY terminal emulator. Pair your local PC environment with mobile devices via zero-trust, E2E encrypted relays and Algorand x402 micro-compute.
         </p>
 
-        {/* Hero CTAs */}
-        <div className="flex flex-wrap items-center justify-center gap-5 mb-12">
+        {/* Agenta Hero Buttons */}
+        <div className="flex flex-wrap items-center justify-center gap-4 mb-16">
           <a
             href="https://github.com/devndesigner6/helix-box/releases/latest/download/helix-boxv1.apk"
-            className="flex items-center gap-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold px-8 py-4 rounded-2xl border border-white/20 shadow-[0_0_30px_rgba(139,92,246,0.5)] hover:scale-105 transition-all text-left"
+            className="agenta-pill-btn px-8 py-3.5 text-base flex items-center gap-3 shadow-lg"
           >
-            <Smartphone className="w-6 h-6 shrink-0" />
-            <div>
-              <div className="text-base leading-none mb-1">Download for Android</div>
-              <div className="text-xs font-normal opacity-80">Latest Standalone APK (helix-boxv1.apk)</div>
-            </div>
+            <Smartphone className="w-5 h-5" />
+            <span>Download for Android</span>
           </a>
 
-          <div className="flex items-center gap-3 px-6 py-4 rounded-2xl glass-panel font-mono text-sm border-white/20 shadow-xl">
-            <span className="text-cyan-400 font-bold">$</span>
-            <code className="text-gray-200">npx helixbox-cli -n</code>
-            <button 
-              onClick={copyCommand}
-              className="ml-2 text-gray-400 hover:text-purple-400 transition-colors p-1"
-              title="Copy Command"
-            >
-              {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-            </button>
+          <button
+            onClick={copyCommand}
+            className="agenta-outline-btn px-6 py-3.5 text-sm font-mono flex items-center gap-3"
+          >
+            <span className="text-cyan-500 font-bold">$</span>
+            <span>npx helixbox-cli -n</span>
+            {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+          </button>
+        </div>
+
+        {/* Agenta Infinite Horizontal Marquee Banner */}
+        <div className="relative w-full overflow-hidden no-scrollbar py-4 border-y border-slate-200/80 dark:border-slate-800/80 mb-20 bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm">
+          <div className="flex w-[200%] animate-marquee gap-4">
+            {marqueeItems.concat(marqueeItems).map((item, idx) => (
+              <span 
+                key={idx} 
+                className="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shrink-0"
+              >
+                {item}
+              </span>
+            ))}
           </div>
         </div>
 
-        {/* Sub-Badges */}
-        <div className="flex flex-wrap items-center justify-center gap-8 text-xs font-medium text-gray-500 mb-12">
-          <div className="flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-cyan-400" /> E2E Encrypted</div>
-          <div className="flex items-center gap-2"><Zap className="w-4 h-4 text-cyan-400" /> &lt; 1s Algorand x402 Settlement</div>
-          <div className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-cyan-400" /> iOS Version Coming Soon</div>
+        {/* Giant Agenta Rounded Hero Showcase Frame */}
+        <div className="relative max-w-5xl mx-auto rounded-3xl overflow-hidden p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl">
+          <div className="rounded-2xl overflow-hidden border border-slate-200/60 dark:border-slate-800/60">
+            <TerminalShowcase />
+          </div>
         </div>
 
-        {/* Terminal Window Mockup */}
-        <TerminalShowcase />
       </section>
 
-      {/* Features Grid — KokonutUI 3D Card Flips */}
-      <section className="relative z-10 py-24 px-6 max-w-6xl mx-auto" id="features">
+      {/* Agenta Bento Grid Features Section */}
+      <section className="py-24 px-6 max-w-6xl mx-auto" id="features">
         <div className="text-center max-w-2xl mx-auto mb-16">
-          <span className="font-mono text-xs font-bold text-cyan-400 tracking-widest uppercase">ENGINEERED FOR SPEED</span>
-          <h2 className="text-4xl font-extrabold font-heading text-white mt-2 mb-4">Next-Gen Mobile Developer Experience</h2>
-          <p className="text-gray-400 text-base">Combining zero-trust proxy infrastructure, mobile PTY terminal rendering, and Algorand micro-billing.</p>
+          <span className="font-mono text-xs font-bold text-cyan-600 dark:text-cyan-400 tracking-widest uppercase">DISCOVER CAPABILITIES</span>
+          <h2 className="text-4xl font-extrabold font-heading text-slate-900 dark:text-white mt-2 mb-4">Engineering Beyond Boundaries</h2>
+          <p className="text-slate-600 dark:text-slate-400 text-base">Combining zero-trust proxy infrastructure, mobile PTY terminal rendering, and Algorand micro-billing.</p>
         </div>
 
+        {/* Bento Grid Layout (Agenta Style) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <CardFlip 
             icon={Lock}
@@ -146,76 +161,51 @@ export default function App() {
       </section>
 
       {/* Algorand x402 Section */}
-      <section className="relative z-10 py-20 px-6 max-w-6xl mx-auto" id="x402">
-        <LiquidGlassCard className="text-center py-16 px-8 border-cyan-500/30">
-          <span className="font-mono text-xs font-bold text-cyan-400 tracking-widest uppercase mb-3 block">ALGORAND x402 PROTOCOL NATIVE</span>
-          <h2 className="text-4xl font-extrabold font-heading text-white mb-4">Pay-Per-Request Micro-Compute Settlement</h2>
-          <p className="text-gray-400 text-base max-w-2xl mx-auto mb-12 leading-relaxed">
-            Traditional cloud IDEs force $20/month subscriptions. Helix Box uses <strong className="text-white">Algorand x402 (HTTP 402 Payment Required)</strong> to let developers and autonomous AI agents pay per command execution on-chain.
+      <section className="py-20 px-6 max-w-6xl mx-auto" id="x402">
+        <LiquidGlassCard className="text-center py-16 px-8 agenta-glass-panel border-cyan-400/40">
+          <span className="font-mono text-xs font-bold text-cyan-600 dark:text-cyan-400 tracking-widest uppercase mb-3 block">ALGORAND x402 PROTOCOL NATIVE</span>
+          <h2 className="text-4xl font-extrabold font-heading text-slate-900 dark:text-white mb-4">Pay-Per-Request Micro-Compute Settlement</h2>
+          <p className="text-slate-600 dark:text-slate-400 text-base max-w-2xl mx-auto mb-12 leading-relaxed">
+            Traditional cloud IDEs force $20/month subscriptions. Helix Box uses <strong className="text-slate-900 dark:text-white">Algorand x402 (HTTP 402 Payment Required)</strong> to let developers and autonomous AI agents pay per command execution on-chain.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-left">
-            <div className="p-6 rounded-xl glass-panel border-white/10">
-              <div className="font-mono text-xs text-purple-400 font-bold mb-2">01</div>
-              <h4 className="font-heading font-bold text-white mb-2">Request API</h4>
-              <p className="text-xs text-gray-400">Client sends request to terminal or AI assist endpoint.</p>
+            <div className="p-6 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 shadow-sm">
+              <div className="font-mono text-xs text-purple-600 dark:text-purple-400 font-bold mb-2">01</div>
+              <h4 className="font-heading font-bold text-slate-900 dark:text-white mb-2">Request API</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Client sends request to terminal or AI assist endpoint.</p>
             </div>
-            <div className="p-6 rounded-xl glass-panel border-white/10">
-              <div className="font-mono text-xs text-purple-400 font-bold mb-2">02</div>
-              <h4 className="font-heading font-bold text-white mb-2">HTTP 402 Challenge</h4>
-              <p className="text-xs text-gray-400">Manager returns <code className="text-cyan-300">X-PAYMENT-REQUEST</code> header with USDC price & nonce.</p>
+            <div className="p-6 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 shadow-sm">
+              <div className="font-mono text-xs text-purple-600 dark:text-purple-400 font-bold mb-2">02</div>
+              <h4 className="font-heading font-bold text-slate-900 dark:text-white mb-2">HTTP 402 Challenge</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Manager returns <code className="text-cyan-600 dark:text-cyan-300">X-PAYMENT-REQUEST</code> header with USDC price & nonce.</p>
             </div>
-            <div className="p-6 rounded-xl glass-panel border-white/10">
-              <div className="font-mono text-xs text-purple-400 font-bold mb-2">03</div>
-              <h4 className="font-heading font-bold text-white mb-2">Algorand Settlement</h4>
-              <p className="text-xs text-gray-400">Client signs & broadcasts transaction on MainNet in &lt; 1s.</p>
+            <div className="p-6 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 shadow-sm">
+              <div className="font-mono text-xs text-purple-600 dark:text-purple-400 font-bold mb-2">03</div>
+              <h4 className="font-heading font-bold text-slate-900 dark:text-white mb-2">Algorand Settlement</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Client signs & broadcasts transaction on MainNet in &lt; 1s.</p>
             </div>
-            <div className="p-6 rounded-xl glass-panel border-white/10">
-              <div className="font-mono text-xs text-purple-400 font-bold mb-2">04</div>
-              <h4 className="font-heading font-bold text-white mb-2">Fulfillment</h4>
-              <p className="text-xs text-gray-400">Manager verifies proof & executes PTY command or AI prompt.</p>
+            <div className="p-6 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 shadow-sm">
+              <div className="font-mono text-xs text-purple-600 dark:text-purple-400 font-bold mb-2">04</div>
+              <h4 className="font-heading font-bold text-slate-900 dark:text-white mb-2">Fulfillment</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Manager verifies proof & executes PTY command or AI prompt.</p>
             </div>
           </div>
         </LiquidGlassCard>
       </section>
 
-      {/* Download CTA Banner */}
-      <section className="relative z-10 py-20 px-6 max-w-4xl mx-auto text-center">
-        <div className="glass-panel p-12 rounded-3xl border-purple-500/40 bg-gradient-to-br from-purple-900/30 to-cyan-900/30 shadow-[0_0_50px_rgba(139,92,246,0.3)]">
-          <h2 className="text-3xl font-extrabold font-heading text-white mb-4">Ready to control your terminal from anywhere?</h2>
-          <p className="text-gray-300 text-sm max-w-lg mx-auto mb-8">Download the official Helix Box standalone Android APK or run our CLI tool in 5 seconds.</p>
-          
-          <div className="flex flex-wrap items-center justify-center gap-5">
-            <a
-              href="https://github.com/devndesigner6/helix-box/releases/latest/download/helix-boxv1.apk"
-              className="flex items-center gap-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold px-8 py-4 rounded-2xl border border-white/20 shadow-xl hover:scale-105 transition-all"
-            >
-              <Smartphone className="w-5 h-5" />
-              <span>Download APK (helix-boxv1.apk)</span>
-            </a>
-            <a
-              href="https://github.com/devndesigner6/helix-box"
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-3 bg-white/10 hover:bg-white/20 text-white font-bold px-8 py-4 rounded-2xl border border-white/20 shadow-xl hover:scale-105 transition-all"
-            >
-              <Code className="w-5 h-5" />
-              <span>Star on GitHub</span>
-            </a>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="relative z-10 border-t border-white/10 py-12 px-6 bg-gray-950/90 text-sm text-gray-500">
+      {/* Agenta Footer */}
+      <footer className="border-t border-slate-200 dark:border-slate-800 py-12 px-6 bg-white dark:bg-[#07090e] transition-colors duration-300">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div>
-            <div className="font-heading font-extrabold text-lg text-white mb-1">Helix<span className="text-cyan-400">Box</span></div>
-            <p className="text-xs text-gray-500">Built for OpenAI Build Week & Algorand x402 Challenge.</p>
+            <div className="font-heading font-extrabold text-xl text-slate-900 dark:text-white mb-1">
+              Helix<span className="text-cyan-500 dark:text-cyan-400">Box</span>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Built for OpenAI Build Week & Algorand x402 Challenge.</p>
           </div>
-          <div className="flex items-center gap-6 text-xs text-gray-400">
+          <div className="flex items-center gap-6 text-xs text-slate-600 dark:text-slate-400">
             <span>Helix-Crew: Hemanth Peddada, Hemanth Bandi, Asif</span>
-            <a href="https://github.com/devndesigner6/helix-box" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">GitHub</a>
+            <a href="https://github.com/devndesigner6/helix-box" target="_blank" rel="noreferrer" className="hover:text-slate-900 dark:hover:text-white transition-colors">GitHub</a>
           </div>
         </div>
       </footer>
